@@ -40,4 +40,25 @@ public class AssetsController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(newAsset);
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteAsset(int id)
+    {
+        var roleId = User.FindFirst("RoleId")?.Value;
+        if (roleId != "1")
+        {
+            return Forbid();
+        }
+
+        var asset = await _context.Assets.FindAsync(id);
+        if (asset == null)
+        {
+            return NotFound();
+        }
+
+        _context.Assets.Remove(asset);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
