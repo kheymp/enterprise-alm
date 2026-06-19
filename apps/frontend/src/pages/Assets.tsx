@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert } from '@mui/material';
-
+import { IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 export default function Assets() {
     const [assets, setAssets] = useState<any[]>([]);
@@ -54,6 +54,27 @@ export default function Assets() {
 
             setName('');
             setSerialNumber('');
+
+            fetchAssets();
+        } catch (err: any) {
+            setError(err.message);
+        }
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!window.confirm('Are you sure you want to permanently delete this asset?')) return;
+
+        const token = localStorage.getItem("token");
+
+        try {
+            const res = await fetch(`http://localhost:5132/api/assets/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) throw new Error('Failed to delete asset. (Are you an Admin?)');
 
             fetchAssets();
         } catch (err: any) {
@@ -129,6 +150,7 @@ export default function Assets() {
                                     <TableCell><strong>Serial Number</strong></TableCell>
                                     <TableCell><strong>Status</strong></TableCell>
                                     <TableCell><strong>Assigned To</strong></TableCell>
+                                    <TableCell align="right"><strong>Actions</strong></TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -145,6 +167,11 @@ export default function Assets() {
                                             <TableCell>{asset.serialNumber}</TableCell>
                                             <TableCell>{asset.isActive ? "Active" : "Inactive"}</TableCell>
                                             <TableCell>{asset.assignedUser ? asset.assignedUser.username : "Unassigned"}</TableCell>
+                                            <TableCell align="right">
+                                                <IconButton color="error" size="small" onClick={() => handleDelete(asset.id)}>
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}
