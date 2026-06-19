@@ -1,0 +1,16 @@
+# Node.js
+node_modules/
+dist/
+build/
+.env
+
+# .NET
+bin/
+obj/
+appsettings.Development.json
+
+# IDEs and OS files
+.vscode/
+.vs/
+.idea/
+.DS_Store
