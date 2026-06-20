@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+
 
 export default function Assets() {
     const [assets, setAssets] = useState<any[]>([]);
@@ -10,6 +12,7 @@ export default function Assets() {
     const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
     const [isActive, setIsActive] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
 
     const fetchAssets = async () => {
         const token = localStorage.getItem('token');
@@ -41,19 +44,22 @@ export default function Assets() {
         const token = localStorage.getItem("token");
 
         try {
-            const res = await fetch("http://localhost:5132/api/assets", {
-                method: 'POST',
+            const url = editingAssetId ? `http://localhost:5132/api/assets/${editingAssetId}` : "http://localhost:5132/api/assets";
+            const method = editingAssetId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify(payload)
             });
-
-            if (!res.ok) throw new Error('Failed to save asset data. (Are you an Admin?)');
-
+            if (!res.ok) throw new Error('Failed to save asset data.');
+            // Reset everything back to normal!
             setName('');
             setSerialNumber('');
+            setEditingAssetId(null); // Leave edit mode
 
             fetchAssets();
         } catch (err: any) {
@@ -82,6 +88,14 @@ export default function Assets() {
         }
     }
 
+    const handleEditClick = (asset: any) => {
+        setName(asset.name);
+        setSerialNumber(asset.serialNumber);
+        setPurchaseDate(asset.purchaseDate.split('T')[0]);
+        setIsActive(asset.isActive);
+        setEditingAssetId(asset.id);
+    }
+
     return (
         <Container maxWidth="xl" sx={{ mt: 2 }}>
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
@@ -97,7 +111,7 @@ export default function Assets() {
                     <Card elevation={2}>
                         <CardContent>
                             <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
-                                Register New Asset
+                                {editingAssetId ? "Edit Asset" : "Register New Asset"}
                             </Typography>
 
                             <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -133,7 +147,7 @@ export default function Assets() {
                                     label={isActive ? "Status: Active" : "Status: Inactive"}
                                 />
                                 <Button type="submit" variant="contained" color="primary" fullWidth>
-                                    Save Asset
+                                    {editingAssetId ? "Update Asset" : "Save Asset"}
                                 </Button>
                             </Box>
                         </CardContent>
@@ -168,6 +182,9 @@ export default function Assets() {
                                             <TableCell>{asset.isActive ? "Active" : "Inactive"}</TableCell>
                                             <TableCell>{asset.assignedUser ? asset.assignedUser.username : "Unassigned"}</TableCell>
                                             <TableCell align="right">
+                                                <IconButton color="primary" size="small" onClick={() => handleEditClick(asset)}>
+                                                    <EditIcon fontSize="small" />
+                                                </IconButton>
                                                 <IconButton color="error" size="small" onClick={() => handleDelete(asset.id)}>
                                                     <DeleteIcon fontSize="small" />
                                                 </IconButton>
