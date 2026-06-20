@@ -61,4 +61,29 @@ public class AssetsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateAsset(int id, [FromBody] Asset updatedAsset)
+    {
+        var roleId = User.FindFirst("RoleId")?.Value;
+        if (roleId != "1" && roleId != "2")
+        {
+            return Forbid();
+        }
+
+        var asset = await _context.Assets.FindAsync(id);
+        if (asset == null)
+        {
+            return NotFound();
+        }
+
+        asset.Name = updatedAsset.Name;
+        asset.SerialNumber = updatedAsset.SerialNumber;
+        asset.PurchaseDate = updatedAsset.PurchaseDate;
+        asset.IsActive = updatedAsset.IsActive;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(asset);
+    }
 }
