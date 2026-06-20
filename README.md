@@ -46,4 +46,4 @@ pnpm dev
 ```
 
 ## 👨‍💻 About The Author
-Created by [Your Name/GitHub Handle]. This project was built to demonstrate full-stack engineering capabilities, emphasizing robust backend design and modern frontend development.
+Created by Kheymp. This project was built to demonstrate full-stack engineering capabilities, emphasizing robust backend design and modern frontend development.
