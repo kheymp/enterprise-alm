@@ -41,6 +41,45 @@ public class AssetsController : ControllerBase
         return Ok(newAsset);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetAssetDetails(int id)
+    {
+        var asset = await _context.Assets
+            .Include(a => a.AssignedUser)
+            .Include(a => a.MaintenanceRecords) 
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (asset == null) return NotFound();
+
+        var monthsOwned = ((DateTime.Now.Year - asset.PurchaseDate.Year) * 12) + DateTime.Now.Month - asset.PurchaseDate.Month;
+        var monthsPassed = Math.Min(monthsOwned, asset.ExpectedLifespanMonths);
+
+        decimal monthlyDepreciation = (asset.PurchasePrice - asset.SalvageValue) / Math.Max(1, asset.ExpectedLifespanMonths);
+        decimal currentValue = asset.PurchasePrice - (monthlyDepreciation * monthsPassed);
+
+        return Ok(new {
+            Asset = asset,
+            CalculatedCurrentValue = currentValue
+        });
+    }
+
+    [HttpPost("{id}/maintenance")]
+    public async Task<IActionResult> AddMaintenance(int id, [FromBody] MaintenanceRecord record)
+    {
+        var roleId = User.FindFirst("RoleId")?.Value;
+        if (roleId != "1" && roleId != "2")
+        {
+            return Forbid();
+        }
+
+        var asset = await _context.Assets.FindAsync(id);
+        if (asset == null) return NotFound();
+        record.AssetId = id; // Ensure the foreign key is set
+        _context.MaintenanceRecords.Add(record);
+        await _context.SaveChangesAsync();
+        return Ok(record);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsset(int id)
     {
@@ -81,6 +120,9 @@ public class AssetsController : ControllerBase
         asset.SerialNumber = updatedAsset.SerialNumber;
         asset.PurchaseDate = updatedAsset.PurchaseDate;
         asset.IsActive = updatedAsset.IsActive;
+        asset.PurchasePrice = updatedAsset.PurchasePrice;
+        asset.ExpectedLifespanMonths = updatedAsset.ExpectedLifespanMonths;
+        asset.SalvageValue = updatedAsset.SalvageValue;
 
         await _context.SaveChangesAsync();
 
