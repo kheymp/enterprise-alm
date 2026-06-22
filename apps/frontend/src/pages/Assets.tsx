@@ -3,6 +3,9 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Chip, IconButton, Co
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
+import AddIcon from '@mui/icons-material/Add';
+import ClearIcon from '@mui/icons-material/Clear';
+import SaveIcon from '@mui/icons-material/Save';
 
 
 export default function Assets() {
@@ -77,12 +80,7 @@ export default function Assets() {
             });
             if (!res.ok) throw new Error('Failed to save asset data.');
             // Reset everything back to normal!
-            setName('');
-            setSerialNumber('');
-            setEditingAssetId(null); // Leave edit mode
-            setPurchasePrice('');
-            setExpectedLifespanMonths('');
-            setSalvageValue('');
+            handleCancelEdit();
 
             fetchAssets();
         } catch (err: any) {
@@ -120,6 +118,17 @@ export default function Assets() {
         setExpectedLifespanMonths(asset.expectedLifespanMonths);
         setSalvageValue(asset.salvageValue);
         setEditingAssetId(asset.id);
+    }
+
+    const handleCancelEdit = () => {
+        setEditingAssetId(null);
+        setName('');
+        setSerialNumber('');
+        setPurchaseDate(new Date().toISOString().split('T')[0]);
+        setIsActive(true);
+        setPurchasePrice('');
+        setExpectedLifespanMonths('');
+        setSalvageValue('');
     }
 
     const fetchAssetDetails = async (id: number) => {
@@ -187,7 +196,8 @@ export default function Assets() {
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Card elevation={2}>
                         <CardContent>
-                            <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                                {editingAssetId ? <EditIcon color="primary" /> : <AddIcon color="primary" />}
                                 {editingAssetId ? "Edit Asset" : "Register New Asset"}
                             </Typography>
 
@@ -252,9 +262,23 @@ export default function Assets() {
                                     }
                                     label={isActive ? "Status: Active" : "Status: Inactive"}
                                 />
-                                <Button type="submit" variant="contained" color="primary" fullWidth>
-                                    {editingAssetId ? "Update Asset" : "Save Asset"}
-                                </Button>
+
+                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                    <Button type="submit" variant="contained" color={editingAssetId ? "success" : "primary"} startIcon={editingAssetId ? <SaveIcon /> : <AddIcon />} fullWidth>
+                                        {editingAssetId ? "Update Asset" : "Save Asset"}
+                                    </Button>
+                                    {editingAssetId && (
+                                        <Button
+                                            type="button"
+                                            variant="outlined"
+                                            color="inherit"
+                                            onClick={handleCancelEdit}
+                                            startIcon={<ClearIcon />}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    )}
+                                </Box>
                             </Box>
                         </CardContent>
                     </Card>
