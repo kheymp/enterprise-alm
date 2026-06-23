@@ -21,6 +21,12 @@ public class AssetsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllAssets()
     {
+        var roleId = User.FindFirst("RoleId")?.Value;
+        if (roleId != "1" && roleId != "2" && roleId != "3") 
+        {
+            return Forbid();
+        }
+
         var assets = await _context.Assets
             .Include(a => a.AssignedUser)
             .ToListAsync();
@@ -44,6 +50,12 @@ public class AssetsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAssetDetails(int id)
     {
+        var roleId = User.FindFirst("RoleId")?.Value;
+        if (roleId != "1" && roleId != "2" && roleId != "3") 
+        {
+            return Forbid();
+        }
+        
         var asset = await _context.Assets
             .Include(a => a.AssignedUser)
             .Include(a => a.MaintenanceRecords) 
