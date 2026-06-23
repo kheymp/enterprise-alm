@@ -44,7 +44,7 @@ if (roleId != "1")
 
         if (newUser.RoleId == 0)
         {
-            newUser.RoleId = 2;
+            newUser.RoleId = 4;
         }
 
         _context.Users.Add(newUser);

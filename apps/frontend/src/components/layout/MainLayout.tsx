@@ -57,12 +57,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         <ListItemText primary="Dashboard (M2)" />
                     </ListItemButton>
                 </ListItem>
-                <ListItem disablePadding>
-                    <ListItemButton onClick={() => navigate('/assets')}>
-                        <ListItemIcon><LaptopMacIcon /></ListItemIcon>
-                        <ListItemText primary="Assets (M2)" />
-                    </ListItemButton>
-                </ListItem>
+
+                {["1", "2", "3"].includes(roleId) && (
+                    <ListItem disablePadding>
+                        <ListItemButton onClick={() => navigate('/assets')}>
+                            <ListItemIcon><LaptopMacIcon /></ListItemIcon>
+                            <ListItemText primary="Assets (M2)" />
+                        </ListItemButton>
+                    </ListItem>
+                )}
+
                 <ListItem disablePadding>
                     <ListItemButton disabled>
                         <ListItemIcon><VpnKeyIcon /></ListItemIcon>

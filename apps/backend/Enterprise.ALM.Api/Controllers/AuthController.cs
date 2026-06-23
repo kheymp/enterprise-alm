@@ -35,7 +35,7 @@ namespace Enterprise.ALM.Api.Controllers
                 Email = request.Email,
                 Username = request.Email.Split('@')[0],
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                RoleId = 3,
+                RoleId = 4,
                 IsActive = true
             };
 

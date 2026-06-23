@@ -24,7 +24,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Role>().HasData(
             new Role { Id = 1, Name = "Admin", Description = "Full system authorization & rule control." },
             new Role { Id = 2, Name = "Manager", Description = "Read/Write assets, licenses, and seats." },
-            new Role { Id = 3, Name = "Viewer", Description = "Read-only access to monitoring dashboards." }
+            new Role { Id = 3, Name = "Viewer", Description = "Read-only access to monitoring dashboards." },
+            new Role { Id = 4, Name = "Employee", Description = "No system access. Used for asset asignment only." }
         );
     }
     
