@@ -67,6 +67,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </ListItem>
                 )}
 
+                {["1", "2", "3"].includes(roleId) && (
+                    <ListItem disablePadding>
+                        <ListItemButton onClick={() => navigate('/licenses')}>
+                            <ListItemIcon><LaptopMacIcon /></ListItemIcon>
+                            <ListItemText primary="Software Licenses" />
+                        </ListItemButton>
+                    </ListItem>
+                )}
+
                 <ListItem disablePadding>
                     <ListItemButton disabled>
                         <ListItemIcon><VpnKeyIcon /></ListItemIcon>

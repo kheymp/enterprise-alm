@@ -14,5 +14,6 @@ namespace Enterprise.ALM.Domain.Entities
         public int RoleId { get; set; }
         public Role? Role { get; set; } = null!;
 
+        public ICollection<LicenseAllocation> LicenseAllocations { get; set; } = new List<LicenseAllocation>();
     }
 }

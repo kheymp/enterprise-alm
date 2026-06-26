@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import Welcome from './pages/Welcome';
 import UserManagement from './pages/UserManagement';
 import Assets from './pages/Assets';
+import Licenses from './pages/Licenses';
 
 // 1. The Bouncer (Protected Route)
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -47,7 +48,17 @@ export default function App() {
             </MainLayout>
           </ProtectedRoute>
         } />
+
+        <Route path="/licenses" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <Licenses />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
       </Routes>
+
+
     </BrowserRouter>
   )
 }
