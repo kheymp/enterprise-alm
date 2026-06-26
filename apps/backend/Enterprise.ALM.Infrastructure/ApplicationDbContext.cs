@@ -15,6 +15,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<Asset> Assets { get; set; }
     public DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
+    public DbSet<SoftwareLicense> SoftwareLicenses { get; set; }
+    public DbSet<LicenseAllocation> LicenseAllocations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
