@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Chip, IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Chip, IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert, MenuItem } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
@@ -10,6 +10,7 @@ import SaveIcon from '@mui/icons-material/Save';
 
 export default function Assets() {
     const [assets, setAssets] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
 
     const [name, setName] = useState('');
     const [serialNumber, setSerialNumber] = useState('');
@@ -21,9 +22,10 @@ export default function Assets() {
     const [purchasePrice, setPurchasePrice] = useState<number | ''>('');
     const [expectedLifespanMonths, setExpectedLifespanMonths] = useState<number | ''>('');
     const [salvageValue, setSalvageValue] = useState<number | ''>('');
+    const [assignedUserId, setAssignedUserId] = useState<number | ''>('');
 
     // States for the Details Modal
-    const [selectedAssetId, setSelectedAssetId] = useState<number | ''>(null);
+    const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
     const [assetDetails, setAssetDetails] = useState<any>(null);
 
     // States for the Maintenance Form
@@ -46,8 +48,20 @@ export default function Assets() {
         }
     };
 
+    const fetchUsers = async () => {
+        const token = localStorage.getItem('token');
+        const res = await fetch("http://localhost:5132/api/users", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setUsers(data);
+        }
+    };
+
     useEffect(() => {
         fetchAssets();
+        fetchUsers();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +75,8 @@ export default function Assets() {
             isActive,
             purchasePrice: Number(purchasePrice),
             expectedLifespanMonths: Number(expectedLifespanMonths),
-            salvageValue: Number(salvageValue)
+            salvageValue: Number(salvageValue),
+            assignedUserId: assignedUserId === '' ? null : assignedUserId
         };
 
         const token = localStorage.getItem("token");
@@ -117,6 +132,7 @@ export default function Assets() {
         setPurchasePrice(asset.purchasePrice);
         setExpectedLifespanMonths(asset.expectedLifespanMonths);
         setSalvageValue(asset.salvageValue);
+        setAssignedUserId(asset.assignedUserId || '');
         setEditingAssetId(asset.id);
     }
 
@@ -129,6 +145,7 @@ export default function Assets() {
         setPurchasePrice('');
         setExpectedLifespanMonths('');
         setSalvageValue('');
+        setAssignedUserId('');
     }
 
     const fetchAssetDetails = async (id: number) => {
@@ -256,6 +273,23 @@ export default function Assets() {
                                     slotProps={{ htmlInput: { min: 0 } }}
                                     required
                                 />
+                                <TextField
+                                    select
+                                    label="Assigned To (User)"
+                                    variant="outlined"
+                                    size="small"
+                                    value={assignedUserId}
+                                    onChange={(e) => setAssignedUserId(e.target.value === '' ? '' : Number(e.target.value))}
+                                >
+                                    <MenuItem value="">
+                                        <em>Unassigned</em>
+                                    </MenuItem>
+                                    {users.map((user) => (
+                                        <MenuItem key={user.id} value={user.id}>
+                                            {user.username} ({user.email})
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
                                 <FormControlLabel
                                     control={
                                         <Switch checked={isActive} onChange={(e) => setIsActive(e.target.checked)} color="primary" />
@@ -348,7 +382,9 @@ export default function Assets() {
                         <Grid container spacing={4}>
                             {/* Depreciation Info */}
                             <Grid size={{ xs: 12, md: 5 }}>
-                                <Typography variant="h6" gutterBottom>Financial Overview</Typography>
+                                <Typography variant="h6" gutterBottom>Overview</Typography>
+                                <Typography variant="body1" sx={{ mb: 2 }}><strong>Assigned To:</strong> {assetDetails.asset.assignedUser ? assetDetails.asset.assignedUser.username : "Unassigned"}</Typography>
+                                <Typography variant="h6" gutterBottom>Financials</Typography>
                                 <Typography variant="body1"><strong>Purchase Price:</strong> ${assetDetails.asset.purchasePrice}</Typography>
                                 <Typography variant="body1"><strong>Salvage Value:</strong> ${assetDetails.asset.salvageValue}</Typography>
                                 <Typography variant="body1"><strong>Lifespan:</strong> {assetDetails.asset.expectedLifespanMonths} months</Typography>

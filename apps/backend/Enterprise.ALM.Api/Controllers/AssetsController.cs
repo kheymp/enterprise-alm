@@ -135,6 +135,7 @@ public class AssetsController : ControllerBase
         asset.PurchasePrice = updatedAsset.PurchasePrice;
         asset.ExpectedLifespanMonths = updatedAsset.ExpectedLifespanMonths;
         asset.SalvageValue = updatedAsset.SalvageValue;
+        asset.AssignedUserId = updatedAsset.AssignedUserId;
 
         await _context.SaveChangesAsync();
 

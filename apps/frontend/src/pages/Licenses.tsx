@@ -2,7 +2,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, In
 import React, { useEffect, useState } from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import InfoIcon from '@mui/icons-material/Info';
+
 import AddIcon from '@mui/icons-material/Add';
 import ClearIcon from '@mui/icons-material/Clear';
 import SaveIcon from '@mui/icons-material/Save';
@@ -33,7 +33,7 @@ export default function Licenses() {
     const [isActive, setIsActive] = useState<boolean>(true);
     const [editingSoftwareLicenseId, setEditingSoftwareLicenseId] = useState<number | null>(null);
 
-    const [error, setError] = useState('');
+    const [, setError] = useState('');
     const [showInactive, setShowInactive] = useState(false);
 
     /* UseState for license allocation */
@@ -42,7 +42,7 @@ export default function Licenses() {
     const [selectedLicenseId, setSelectedLicenseId] = useState<number | null>(null);
     const [users, setUsers] = useState<any[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<number | ''>('');
-    const selectedLicense = softwareLicenses.find(sl => sl.id === selectedLicenseId);
+    // const selectedLicense = softwareLicenses.find(sl => sl.id === selectedLicenseId);
 
 
     const handleEditClick = (softwareLicense: any) => {
@@ -355,7 +355,7 @@ export default function Licenses() {
                                                     size="small"
                                                     title="Assign Seat"
                                                     onClick={() => {
-                                                        setSelectedLicenseId(softwareLicense.id);
+                                                        setSelectedLicenseId(softwareLicense.id!);
                                                         setIsAssignModelOpen(true);
                                                     }}
                                                 >
@@ -367,7 +367,7 @@ export default function Licenses() {
                                                     <EditIcon fontSize="small" />
                                                 </IconButton>
                                                 {/* 3. Delete Icon (Triggers Soft Delete) */}
-                                                <IconButton color="error" size="small" onClick={() => handleDelete(softwareLicense.id)}>
+                                                <IconButton color="error" size="small" onClick={() => handleDelete(softwareLicense.id!)}>
                                                     <DeleteIcon fontSize="small" />
                                                 </IconButton>
                                             </TableCell>

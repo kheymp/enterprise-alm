@@ -2,10 +2,11 @@ import { Navigate, BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from './components/layout/MainLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Welcome from './pages/Welcome';
+
 import UserManagement from './pages/UserManagement';
 import Assets from './pages/Assets';
 import Licenses from './pages/Licenses';
+import Dashboard from './pages/Dashboard';
 
 // 1. The Bouncer (Protected Route)
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -28,7 +29,7 @@ export default function App() {
         <Route path="/" element={
           <ProtectedRoute>
             <MainLayout>
-              <Welcome />
+              <Dashboard />
             </MainLayout>
           </ProtectedRoute>
         } />
