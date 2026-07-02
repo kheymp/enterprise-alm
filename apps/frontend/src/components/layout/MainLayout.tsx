@@ -11,10 +11,10 @@ import LaptopMacIcon from '@mui/icons-material/LaptopMac';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { jwtDecode } from "jwt-decode";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 
-const drawerWidth = 240;
+const drawerWidth = 260;
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -23,6 +23,7 @@ interface MainLayoutProps {
 export default function MainLayout({ children }: MainLayoutProps) {
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
+    const location = useLocation();
     let roleId = null;
 
     if (token) {
@@ -30,10 +31,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         roleId = decoded.RoleId;
     }
 
-
-
     const theme = useTheme();
-    // Automatically detects if the screen size is smaller than the 'md' (960px) breakpoint
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -46,57 +44,57 @@ export default function MainLayout({ children }: MainLayoutProps) {
         navigate('/login');
     };
 
-    // Extracted navigation list items to prevent duplication between drawers
+    const currentPath = location.pathname;
+
     const drawerContent = (
-        <Box sx={{ overflow: 'auto' }}>
-            <Toolbar />
-            <List>
+        <Box sx={{ overflow: 'auto', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64 }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: '-0.02em' }}>
+                    Enterprise ALM
+                </Typography>
+            </Box>
+            <Divider sx={{ mb: 2 }} />
+            <List sx={{ px: 1 }}>
                 <ListItem disablePadding>
-                    <ListItemButton disabled>
+                    <ListItemButton selected={currentPath === '/'} onClick={() => navigate('/')}>
                         <ListItemIcon><DashboardIcon /></ListItemIcon>
-                        <ListItemText primary="Dashboard (M2)" />
+                        <ListItemText primary="Dashboard" />
                     </ListItemButton>
                 </ListItem>
 
                 {["1", "2", "3"].includes(roleId) && (
                     <ListItem disablePadding>
-                        <ListItemButton onClick={() => navigate('/assets')}>
+                        <ListItemButton selected={currentPath === '/assets'} onClick={() => navigate('/assets')}>
                             <ListItemIcon><LaptopMacIcon /></ListItemIcon>
-                            <ListItemText primary="Assets (M2)" />
+                            <ListItemText primary="Assets" />
                         </ListItemButton>
                     </ListItem>
                 )}
 
                 {["1", "2", "3"].includes(roleId) && (
                     <ListItem disablePadding>
-                        <ListItemButton onClick={() => navigate('/licenses')}>
-                            <ListItemIcon><LaptopMacIcon /></ListItemIcon>
+                        <ListItemButton selected={currentPath === '/licenses'} onClick={() => navigate('/licenses')}>
+                            <ListItemIcon><VpnKeyIcon /></ListItemIcon>
                             <ListItemText primary="Software Licenses" />
                         </ListItemButton>
                     </ListItem>
                 )}
-
-                <ListItem disablePadding>
-                    <ListItemButton disabled>
-                        <ListItemIcon><VpnKeyIcon /></ListItemIcon>
-                        <ListItemText primary="Access Control (M2)" />
-                    </ListItemButton>
-                </ListItem>
             </List>
-            <Divider />
-            <List>
 
+            <Box sx={{ flexGrow: 1 }} />
+
+            <List sx={{ px: 1, mb: 2 }}>
                 {roleId === "1" && (
                     <ListItem disablePadding>
-                        <ListItemButton onClick={() => navigate('/users')}>
+                        <ListItemButton selected={currentPath === '/users'} onClick={() => navigate('/users')}>
                             <ListItemIcon><PeopleIcon /></ListItemIcon>
-                            <ListItemText primary="Users Management" />
+                            <ListItemText primary="User Management" />
                         </ListItemButton>
-                    </ListItem>)}
-
+                    </ListItem>
+                )}
             </List>
         </Box>
-    )
+    );
 
     return (
         <Box sx={{ display: 'flex' }}>
@@ -111,10 +109,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     >
                         <MenuIcon />
                     </IconButton>
-                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                        Enterprise Asset and License Manager (ALM)
+                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+                        Enterprise Asset and License Manager
                     </Typography>
-                    <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
+                    <Button 
+                        color="inherit" 
+                        onClick={handleLogout} 
+                        startIcon={<LogoutIcon />}
+                        sx={{ borderRadius: '8px', px: 2, py: 1 }}
+                    >
                         Logout
                     </Button>
                 </Toolbar>
@@ -151,18 +154,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    p: 3,
+                    p: 4,
                     bgcolor: 'background.default',
                     minHeight: '100vh',
                     width: { md: `calc(100% - ${drawerWidth}px)` }
                 }}
             >
-                <Toolbar /> {/* Generates padding space below the fixed App Bar */}
+                {/* Invisible Toolbar spacing to push content below the AppBar */}
+                <Toolbar />
                 {children}
             </Box>
         </Box>
-
-
-
-    )
+    );
 }
