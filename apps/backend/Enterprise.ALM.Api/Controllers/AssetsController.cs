@@ -1,8 +1,7 @@
-using Enterprise.ALM.Domain.Entities;
-using Enterprise.ALM.Infrastructure;
+using Enterprise.ALM.Application.DTOs.Asset;
+using Enterprise.ALM.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Enterprise.ALM.Api.Controllers;
 
@@ -12,133 +11,68 @@ namespace Enterprise.ALM.Api.Controllers;
 
 public class AssetsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IAssetService _assetService;
 
-    public AssetsController(ApplicationDbContext context) {
-        _context = context;
+    public AssetsController(IAssetService assetService)
+    {
+        _assetService = assetService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAllAssets()
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2" && roleId != "3") 
-        {
-            return Forbid();
-        }
-
-        var assets = await _context.Assets
-            .Include(a => a.AssignedUser)
-            .ToListAsync();
+        if (roleId != "1" && roleId != "2" && roleId != "3") return Forbid();
+        var assets = await _assetService.GetAllAssetsAsync();
         return Ok(assets);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateAsset([FromBody] Asset newAsset)
+    public async Task<IActionResult> CreateAsset([FromBody] CreateAssetDto dto)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2")
-        {
-            return Forbid();
-        }
-
-        _context.Assets.Add(newAsset);
-        await _context.SaveChangesAsync();
-        return Ok(newAsset);
+        if (roleId != "1" && roleId != "2") return Forbid();
+        var result = await _assetService.CreateAssetAsync(dto);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAssetDetails(int id)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2" && roleId != "3") 
-        {
-            return Forbid();
-        }
-        
-        var asset = await _context.Assets
-            .Include(a => a.AssignedUser)
-            .Include(a => a.MaintenanceRecords) 
-            .FirstOrDefaultAsync(a => a.Id == id);
-
-        if (asset == null) return NotFound();
-
-        var monthsOwned = ((DateTime.Now.Year - asset.PurchaseDate.Year) * 12) + DateTime.Now.Month - asset.PurchaseDate.Month;
-        var monthsPassed = Math.Min(monthsOwned, asset.ExpectedLifespanMonths);
-
-        decimal monthlyDepreciation = (asset.PurchasePrice - asset.SalvageValue) / Math.Max(1, asset.ExpectedLifespanMonths);
-        decimal currentValue = asset.PurchasePrice - (monthlyDepreciation * monthsPassed);
-
-        return Ok(new {
-            Asset = asset,
-            CalculatedCurrentValue = currentValue
-        });
+        if (roleId != "1" && roleId != "2" && roleId != "3") return Forbid();
+        var result = await _assetService.GetAssetDetailsAsync(id);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 
     [HttpPost("{id}/maintenance")]
-    public async Task<IActionResult> AddMaintenance(int id, [FromBody] MaintenanceRecord record)
+    public async Task<IActionResult> AddMaintenance(int id, [FromBody] CreateMaintenanceRecordDto dto)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2")
-        {
-            return Forbid();
-        }
-
-        var asset = await _context.Assets.FindAsync(id);
-        if (asset == null) return NotFound();
-        record.AssetId = id; // Ensure the foreign key is set
-        _context.MaintenanceRecords.Add(record);
-        await _context.SaveChangesAsync();
-        return Ok(record);
+        if (roleId != "1" && roleId != "2") return Forbid();
+        var result = await _assetService.AddMaintenanceRecordAsync(id, dto);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsset(int id)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1")
-        {
-            return Forbid();
-        }
-
-        var asset = await _context.Assets.FindAsync(id);
-        if (asset == null)
-        {
-            return NotFound();
-        }
-
-        _context.Assets.Remove(asset);
-        await _context.SaveChangesAsync();
-
+        if (roleId != "1") return Forbid();
+        var deleted = await _assetService.DeleteAssetAsync(id);
+        if (!deleted) return NotFound();
         return NoContent();
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateAsset(int id, [FromBody] Asset updatedAsset)
+    public async Task<IActionResult> UpdateAsset(int id, [FromBody] UpdateAssetDto dto)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2")
-        {
-            return Forbid();
-        }
-
-        var asset = await _context.Assets.FindAsync(id);
-        if (asset == null)
-        {
-            return NotFound();
-        }
-
-        asset.Name = updatedAsset.Name;
-        asset.SerialNumber = updatedAsset.SerialNumber;
-        asset.PurchaseDate = updatedAsset.PurchaseDate;
-        asset.IsActive = updatedAsset.IsActive;
-        asset.PurchasePrice = updatedAsset.PurchasePrice;
-        asset.ExpectedLifespanMonths = updatedAsset.ExpectedLifespanMonths;
-        asset.SalvageValue = updatedAsset.SalvageValue;
-        asset.AssignedUserId = updatedAsset.AssignedUserId;
-
-        await _context.SaveChangesAsync();
-
-        return Ok(asset);
+        if (roleId != "1" && roleId != "2") return Forbid();
+        var result = await _assetService.UpdateAssetAsync(id, dto);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 }

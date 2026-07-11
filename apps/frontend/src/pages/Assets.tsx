@@ -351,7 +351,7 @@ export default function Assets() {
                                                     variant="outlined"
                                                 />
                                             </TableCell>
-                                            <TableCell>{asset.assignedUser ? asset.assignedUser.username : "Unassigned"}</TableCell>
+                                            <TableCell>{asset.assignedUserName ? asset.assignedUserName : "Unassigned"}</TableCell>
                                             <TableCell align="right">
                                                 <IconButton color="info" size="small" onClick={() => fetchAssetDetails(asset.id)}>
                                                     <InfoIcon fontSize="small" />
@@ -383,7 +383,7 @@ export default function Assets() {
                             {/* Depreciation Info */}
                             <Grid size={{ xs: 12, md: 5 }}>
                                 <Typography variant="h6" gutterBottom>Overview</Typography>
-                                <Typography variant="body1" sx={{ mb: 2 }}><strong>Assigned To:</strong> {assetDetails.asset.assignedUser ? assetDetails.asset.assignedUser.username : "Unassigned"}</Typography>
+                                <Typography variant="body1" sx={{ mb: 2 }}><strong>Assigned To:</strong> {assetDetails.asset.assignedUserName ? assetDetails.asset.assignedUserName : "Unassigned"}</Typography>
                                 <Typography variant="h6" gutterBottom>Financials</Typography>
                                 <Typography variant="body1"><strong>Purchase Price:</strong> ${assetDetails.asset.purchasePrice}</Typography>
                                 <Typography variant="body1"><strong>Salvage Value:</strong> ${assetDetails.asset.salvageValue}</Typography>
