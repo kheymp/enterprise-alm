@@ -1,113 +1,61 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Enterprise.ALM.Infrastructure;
-using Enterprise.ALM.Domain.Entities;
+using Enterprise.ALM.Application.DTOs.User;
+using Enterprise.ALM.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Enterprise.ALM.Api.Controllers;
 
 
 [ApiController]       
-[Route("api/[controller]")] // Sets the URL path to: /api/users
+[Route("api/[controller]")]
 [Authorize]
+
 public class UsersController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserService _userService;
 
-    // The DI container automatically hands us our live database context
-    public UsersController(ApplicationDbContext context)
-    {
-        _context = context;
+    public UsersController(IUserService userService) {
+        _userService = userService;
     }
 
-    // Handles an incoming HTTP GET request
     [HttpGet]
     public async Task<IActionResult> GetAllUsers()
     {
-        // Ask EF Core to fetch all users AND their attached roles out of our database
-        var users = await _context.Users
-            .Include(u => u.Role) 
-            .ToListAsync();
+        var users = await _userService.GetAllUsersAsync();
 
-        // Return a 200 OK status code along with the list of users
         return Ok(users);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateUser([FromBody] User newUser) 
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-if (roleId != "1") 
-{
-    return Forbid(); // Kicks them out with a 403 Forbidden error
-}
+        if (roleId != "1") return Forbid();
 
-        if (newUser.RoleId == 0)
-        {
-            newUser.RoleId = 4;
-        }
-
-        _context.Users.Add(newUser);
-        await _context.SaveChangesAsync();
-        return Ok(newUser);
+        var result = await _userService.CreateUserAsync(dto);
+        return Ok(result);
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-    if (roleId != "1") 
-    {
-        return Forbid(); // Kicks them out with a 403 Forbidden error
-    }
+        if (roleId != "1") return Forbid();
 
-        // Search the database for a user matching the provided ID
-        var user = await _context.Users.FindAsync(id);
-
-        if (user == null)
-        {
-            return NotFound(); // Return a 404 Not Found if the user doesn't exist
-        }
-
-        _context.Users.Remove(user); // Mark the user for deletion
-
-        await _context.SaveChangesAsync(); // Commit the deletion to the database
+        var deleted = await _userService.DeleteUserAsync(id);
+        if (!deleted) return NotFound();
 
         return NoContent();
     }
 
-    [HttpPut("{id}")] 
-    public async Task<IActionResult> UpdateUser(int id, [FromBody] Enterprise.ALM.Domain.Entities.User updatedData)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
     {
         var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1") 
-        {
-            return Forbid(); // Kicks them out with a 403 Forbidden error
-        }
-
-        var existingUser = await _context.Users.FindAsync(id);
-
-        if (existingUser == null)
-        {
-            return NotFound();
-        }
-
-        // Existing core fields
-        existingUser.Username = updatedData.Username;
-        existingUser.Email = updatedData.Email;
-        existingUser.Department = updatedData.Department;
-        existingUser.IsActive = updatedData.IsActive;
+        if (roleId != "1") return Forbid();
         
-        // Existing RoleId logic
-        if (updatedData.RoleId != 0)
-        {
-            existingUser.RoleId = updatedData.RoleId;
-        }
-
-        await _context.SaveChangesAsync();
-
+        var updated = await _userService.UpdateUserAsync(id, dto);
+        if (!updated) return NotFound();
         return NoContent();
     }
-
-
 }

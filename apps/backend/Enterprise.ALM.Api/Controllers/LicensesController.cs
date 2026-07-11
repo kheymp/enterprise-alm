@@ -1,141 +1,79 @@
-using Enterprise.ALM.Domain.Entities;
-using Enterprise.ALM.Infrastructure;
+using Enterprise.ALM.Application.DTOs.License;
+using Enterprise.ALM.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Enterprise.ALM.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+
 public class LicensesController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ILicenseService _licenseService;
 
-    public LicensesController(ApplicationDbContext context) {
-        _context = context;
+    public LicensesController(ILicenseService licenseService) {
+        _licenseService = licenseService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllLicenses([FromQuery] bool showInactive = false) {
+    public async Task<IActionResult> GetAllLicenses([FromQuery] bool showInactive = false)
+    {
         var roleId = User.FindFirst("RoleId")?.Value;
+        if (roleId != "1" && roleId != "2" && roleId != "3") return Forbid();
 
-        if (roleId != "1" && roleId != "2" && roleId != "3") {
-            return Forbid();
-        }
-
-        var licenses = await _context.SoftwareLicenses
-            .Where(sl => sl.IsActive || showInactive)
-            .Include(sl => sl.Allocations)
-            .ToListAsync();
-        
+        var licenses = await _licenseService.GetAllLicensesAsync(showInactive);
         return Ok(licenses);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateLicense([FromBody] SoftwareLicense newSoftwareLicense) {
+    public async Task<IActionResult> CreateLicense([FromBody] CreateLicenseDto dto)
+    {
         var roleId = User.FindFirst("RoleId")?.Value;
-
-        if (roleId != "1" && roleId != "2") {
-            return Forbid();
-        }
-
-        _context.SoftwareLicenses.Add(newSoftwareLicense);
-        await _context.SaveChangesAsync();
-        return Ok(newSoftwareLicense);
+        if (roleId != "1" && roleId != "2") return Forbid();
+        var result = await _licenseService.CreateLicenseAsync(dto);
+        return Ok(result);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateLicense(int id,[FromBody] SoftwareLicense updatedSoftwareLicense) {
+    public async Task<IActionResult> UpdateLicense(int id, [FromBody] UpdateLicenseDto dto)
+    {
         var roleId = User.FindFirst("RoleId")?.Value;
-
-        if (roleId != "1" && roleId != "2") {
-            return Forbid();
-        }
-
-        var softwareLicense = await _context.SoftwareLicenses.FindAsync(id);
-        if (softwareLicense == null) return NotFound();
-
-        softwareLicense.Name = updatedSoftwareLicense.Name;
-        softwareLicense.Publisher = updatedSoftwareLicense.Publisher;
-        softwareLicense.TotalSeats = updatedSoftwareLicense.TotalSeats;
-        softwareLicense.CostPerSeat = updatedSoftwareLicense.CostPerSeat;
-        softwareLicense.RenewalDate = updatedSoftwareLicense.RenewalDate;
-        softwareLicense.IsActive = updatedSoftwareLicense.IsActive;
-
-        await _context.SaveChangesAsync();
-
-        return Ok(softwareLicense);
+        if (roleId != "1" && roleId != "2") return Forbid();
+        var result = await _licenseService.UpdateLicenseAsync(id, dto);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 
     [HttpPost("{id}/allocate")]
-
-    public async Task<IActionResult> AllocationLicense(int id,[FromBody] LicenseAllocation newAllocation) {
+    public async Task<IActionResult> AllocateLicense(int id, [FromBody] AllocateLicenseDto dto)
+    {
         var roleId = User.FindFirst("RoleId")?.Value;
-
-        if (roleId != "1" && roleId != "2") {
-            return Forbid();
-        }
-
-        var softwareLicense = await _context.SoftwareLicenses.FindAsync(id);
-        if (softwareLicense == null) return NotFound();
-        var currentUsedSeats = await _context.LicenseAllocations.CountAsync(la => la.SoftwareLicenseId == id);
-
-        if (currentUsedSeats >= softwareLicense.TotalSeats) {
-            return BadRequest("No available seats left.");
-        }
-
-        var alreadyAllocated = await _context.LicenseAllocations
-            .AnyAsync(la => la.SoftwareLicenseId == id && la.UserId == newAllocation.UserId);
-
-        if (alreadyAllocated) {
-            return BadRequest("This user already has a seat assigned for this software license.");
-        }
-
-        newAllocation.SoftwareLicenseId = id;
-        newAllocation.AssignedDate = DateTime.UtcNow;
-
-        _context.LicenseAllocations.Add(newAllocation);
-        await _context.SaveChangesAsync();
-
-        return Ok(newAllocation);
+        if (roleId != "1" && roleId != "2") return Forbid();
+        var (success, error) = await _licenseService.AllocateLicenseAsync(id, dto);
+        if (!success) return BadRequest(error);
+        return Ok();
     }
 
     [HttpDelete("{id}/allocate/{userId}")]
-    public async Task<IActionResult> RemoveAllocation(int id, int userId) {
+    public async Task<IActionResult> RemoveAllocation(int id, int userId)
+    {
         var roleId = User.FindFirst("RoleId")?.Value;
-
         if (roleId != "1" && roleId != "2") return Forbid();
-
-        var allocation = await _context.LicenseAllocations
-            .FirstOrDefaultAsync(la => la.SoftwareLicenseId == id && la.UserId == userId);
-            
-        if (allocation == null) return NotFound();
-
-        _context.LicenseAllocations.Remove(allocation);
-        await _context.SaveChangesAsync();
-
+        var removed = await _licenseService.RemoveAllocationAsync(id, userId);
+        if (!removed) return NotFound();
         return NoContent();
     }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteLicense(int id) {
-        var roleId = User.FindFirst("RoleId")?.Value;
-
-        if (roleId != "1" && roleId != "2") return Forbid();
-
-        var softwareLicense = await _context.SoftwareLicenses.FindAsync(id);
-        if (softwareLicense == null) return NotFound();
-
-        softwareLicense.IsActive = false;
-        await _context.SaveChangesAsync();
-
-        return Ok();
-
-    }
-
     
-
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteLicense(int id)
+    {
+        var roleId = User.FindFirst("RoleId")?.Value;
+        if (roleId != "1" && roleId != "2") return Forbid();
+        var deleted = await _licenseService.DeleteLicenseAsync(id);
+        if (!deleted) return NotFound();
+        return Ok();
+    }
     
 }
