@@ -19,29 +19,25 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllUsers()
     {
         var users = await _userService.GetAllUsersAsync();
-
         return Ok(users);
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1") return Forbid();
-
         var result = await _userService.CreateUserAsync(dto);
         return Ok(result);
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1") return Forbid();
-
         var deleted = await _userService.DeleteUserAsync(id);
         if (!deleted) return NotFound();
 
@@ -49,11 +45,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1") return Forbid();
-        
         var updated = await _userService.UpdateUserAsync(id, dto);
         if (!updated) return NotFound();
         return NoContent();

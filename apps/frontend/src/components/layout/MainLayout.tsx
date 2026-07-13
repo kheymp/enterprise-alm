@@ -24,11 +24,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
     const location = useLocation();
-    let roleId = null;
 
+    let userRole = null;
     if (token) {
         const decoded: any = jwtDecode(token);
-        roleId = decoded.RoleId;
+        userRole = decoded.role;   // "Admin", "Manager", "Viewer", or "Employee"
     }
 
     const theme = useTheme();
@@ -62,7 +62,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </ListItemButton>
                 </ListItem>
 
-                {["1", "2", "3"].includes(roleId) && (
+                {["Admin", "Manager", "Viewer"].includes(userRole) && (
                     <ListItem disablePadding>
                         <ListItemButton selected={currentPath === '/assets'} onClick={() => navigate('/assets')}>
                             <ListItemIcon><LaptopMacIcon /></ListItemIcon>
@@ -71,7 +71,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </ListItem>
                 )}
 
-                {["1", "2", "3"].includes(roleId) && (
+                {["Admin", "Manager", "Viewer"].includes(userRole) && (
                     <ListItem disablePadding>
                         <ListItemButton selected={currentPath === '/licenses'} onClick={() => navigate('/licenses')}>
                             <ListItemIcon><VpnKeyIcon /></ListItemIcon>
@@ -84,7 +84,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <Box sx={{ flexGrow: 1 }} />
 
             <List sx={{ px: 1, mb: 2 }}>
-                {roleId === "1" && (
+                {userRole === "Admin" && (
                     <ListItem disablePadding>
                         <ListItemButton selected={currentPath === '/users'} onClick={() => navigate('/users')}>
                             <ListItemIcon><PeopleIcon /></ListItemIcon>
@@ -112,9 +112,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
                         Enterprise Asset and License Manager
                     </Typography>
-                    <Button 
-                        color="inherit" 
-                        onClick={handleLogout} 
+                    <Button
+                        color="inherit"
+                        onClick={handleLogout}
                         startIcon={<LogoutIcon />}
                         sx={{ borderRadius: '8px', px: 2, py: 1 }}
                     >

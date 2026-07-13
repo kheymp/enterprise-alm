@@ -17,12 +17,10 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("summary")]
+    [Authorize(Roles = "Admin,Manager,Viewer")]
     public async Task<IActionResult> GetSummary()
     {
-        // Role Checking
-        var roleId = User.FindFirst("RoleId")?.Value;
-        bool isViewer = roleId == "3";
-
+        bool isViewer = User.IsInRole("Viewer");
         var summary = await _dashboardService.GetSummaryAsync(isViewer);
         return Ok(summary);
     }

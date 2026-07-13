@@ -1,6 +1,8 @@
 using Enterprise.ALM.Application.DTOs.Auth;
 using Enterprise.ALM.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace Enterprise.ALM.Api.Controllers
 {
@@ -17,6 +19,7 @@ namespace Enterprise.ALM.Api.Controllers
 
         // FOR CREATING NEW ADMINS AND USERS SAFELY
         [HttpPost("register")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
             var success = await _authService.RegisterAsync(request);

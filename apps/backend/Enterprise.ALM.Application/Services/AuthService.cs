@@ -33,7 +33,7 @@ public class AuthService : IAuthService
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim("RoleId", user.RoleId.ToString())
+                new Claim(ClaimTypes.Role, user.Role!.Name)
             }),
             Expires = DateTime.UtcNow.AddMinutes(
                 double.Parse(_configuration["JwtSettings:ExpirationInMinutes"]!)),

@@ -18,59 +18,52 @@ public class LicensesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Manager,Viewer")]
     public async Task<IActionResult> GetAllLicenses([FromQuery] bool showInactive = false)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2" && roleId != "3") return Forbid();
-
         var licenses = await _licenseService.GetAllLicensesAsync(showInactive);
         return Ok(licenses);
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateLicense([FromBody] CreateLicenseDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var result = await _licenseService.CreateLicenseAsync(dto);
         return Ok(result);
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> UpdateLicense(int id, [FromBody] UpdateLicenseDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var result = await _licenseService.UpdateLicenseAsync(id, dto);
         if (result == null) return NotFound();
         return Ok(result);
     }
 
     [HttpPost("{id}/allocate")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> AllocateLicense(int id, [FromBody] AllocateLicenseDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var (success, error) = await _licenseService.AllocateLicenseAsync(id, dto);
         if (!success) return BadRequest(error);
         return Ok();
     }
 
     [HttpDelete("{id}/allocate/{userId}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> RemoveAllocation(int id, int userId)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var removed = await _licenseService.RemoveAllocationAsync(id, userId);
         if (!removed) return NotFound();
         return NoContent();
     }
     
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> DeleteLicense(int id)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var deleted = await _licenseService.DeleteLicenseAsync(id);
         if (!deleted) return NotFound();
         return Ok();
