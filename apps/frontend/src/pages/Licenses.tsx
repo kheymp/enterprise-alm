@@ -296,19 +296,19 @@ export default function Licenses() {
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 8 }}>
-                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={showInactive}
-                                    onChange={(e) => setShowInactive(e.target.checked)}
-                                    color="primary"
-                                />
-                            }
-                            label="Show Inactive Licenses"
-                        />
-                    </Box>
                     <TableContainer component={Paper} elevation={2}>
+                        <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid', borderColor: 'divider' }}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={showInactive}
+                                        onChange={(e) => setShowInactive(e.target.checked)}
+                                        color="primary"
+                                    />
+                                }
+                                label="Show Inactive Licenses"
+                            />
+                        </Box>
                         <Table>
                             <TableHead sx={{ bgcolor: "action.hover" }}>
                                 <TableRow>
