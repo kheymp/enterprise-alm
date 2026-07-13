@@ -19,58 +19,52 @@ public class AssetsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Manager,Viewer")]
     public async Task<IActionResult> GetAllAssets()
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2" && roleId != "3") return Forbid();
         var assets = await _assetService.GetAllAssetsAsync();
         return Ok(assets);
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateAsset([FromBody] CreateAssetDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var result = await _assetService.CreateAssetAsync(dto);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin,Manager,Viewer")]
     public async Task<IActionResult> GetAssetDetails(int id)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2" && roleId != "3") return Forbid();
         var result = await _assetService.GetAssetDetailsAsync(id);
         if (result == null) return NotFound();
         return Ok(result);
     }
 
     [HttpPost("{id}/maintenance")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> AddMaintenance(int id, [FromBody] CreateMaintenanceRecordDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var result = await _assetService.AddMaintenanceRecordAsync(id, dto);
         if (result == null) return NotFound();
         return Ok(result);
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteAsset(int id)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1") return Forbid();
         var deleted = await _assetService.DeleteAssetAsync(id);
         if (!deleted) return NotFound();
         return NoContent();
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> UpdateAsset(int id, [FromBody] UpdateAssetDto dto)
     {
-        var roleId = User.FindFirst("RoleId")?.Value;
-        if (roleId != "1" && roleId != "2") return Forbid();
         var result = await _assetService.UpdateAssetAsync(id, dto);
         if (result == null) return NotFound();
         return Ok(result);
