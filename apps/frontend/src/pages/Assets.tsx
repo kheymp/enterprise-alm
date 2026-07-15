@@ -432,12 +432,12 @@ export default function Assets() {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {assetDetails.asset.maintenanceRecords?.length === 0 ? (
+                                        {assetDetails.maintenanceRecords?.length === 0 ? (
                                             <TableRow>
                                                 <TableCell colSpan={3} align="center" sx={{ py: 2 }}>No Maintenance</TableCell>
                                             </TableRow>
                                         ) : (
-                                            assetDetails.asset.maintenanceRecords?.map((record: any) => (
+                                            assetDetails.maintenanceRecords?.map((record: any) => (
                                                 <TableRow key={record.id}>
                                                     <TableCell>{record.datePerformed.split('T')[0]}</TableCell>
                                                     <TableCell>{record.description}</TableCell>
