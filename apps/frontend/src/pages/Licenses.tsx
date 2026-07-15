@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, Box, Button, Card, CardContent, Container, Grid, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography, FormControlLabel, Switch, Chip } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, Box, Button, Card, CardContent, Container, Grid, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography, FormControlLabel, Switch, Chip, Tooltip } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -8,6 +8,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import SaveIcon from '@mui/icons-material/Save';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import WarningIcon from '@mui/icons-material/Warning';
+import { jwtDecode } from "jwt-decode";
 
 
 export default function Licenses() {
@@ -35,6 +36,14 @@ export default function Licenses() {
 
     const [, setError] = useState('');
     const [showInactive, setShowInactive] = useState(false);
+
+    const token = localStorage.getItem("token");
+    let userRole = null;
+    if (token) {
+        const decoded: any = jwtDecode(token);
+        userRole = decoded.role;
+    }
+    const canModify = userRole === 'Admin' || userRole === 'Manager';
 
     /* UseState for license allocation */
 
@@ -175,16 +184,16 @@ export default function Licenses() {
 
     const handleRemoveAllocation = async (licenseId: number, userId: number) => {
         if (!window.confirm("Are you sure you want to remove this user from the license?")) return;
-        
+
         const token = localStorage.getItem('token');
         try {
             const res = await fetch(`http://localhost:5132/api/licenses/${licenseId}/allocate/${userId}`, {
                 method: 'DELETE',
                 headers: { "Authorization": `Bearer ${token}` }
             });
-            
+
             if (!res.ok) throw new Error("Failed to remove allocation.");
-            
+
             fetchSoftwareLicenses(); // Refresh the table and modal!
         } catch (err: any) {
             setError(err.message);
@@ -275,9 +284,13 @@ export default function Licenses() {
                                 />
 
                                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                    <Button type="submit" variant="contained" color={editingSoftwareLicenseId ? "success" : "primary"} startIcon={editingSoftwareLicenseId ? <SaveIcon /> : <AddIcon />} fullWidth>
-                                        {editingSoftwareLicenseId ? "Update Software License" : "Save Software License"}
-                                    </Button>
+                                    <Tooltip title={!canModify ? "Requires Admin or Manager role" : ""}>
+                                        <span style={{ width: '100%' }}>
+                                            <Button type="submit" variant="contained" color={editingSoftwareLicenseId ? "success" : "primary"} startIcon={editingSoftwareLicenseId ? <SaveIcon /> : <AddIcon />} fullWidth disabled={!canModify}>
+                                                {editingSoftwareLicenseId ? "Update Software License" : "Save Software License"}
+                                            </Button>
+                                        </span>
+                                    </Tooltip>
                                     {editingSoftwareLicenseId && (
                                         <Button
                                             type="button"
@@ -353,26 +366,38 @@ export default function Licenses() {
                                                 />
                                             </TableCell>
                                             <TableCell align="right">
-                                                <IconButton
-                                                    color="success"
-                                                    size="small"
-                                                    title="Assign Seat"
-                                                    onClick={() => {
-                                                        setSelectedLicenseId(softwareLicense.id!);
-                                                        setIsAssignModelOpen(true);
-                                                    }}
-                                                >
-                                                    <PersonAddIcon fontSize="small" />
-                                                </IconButton>
+                                                <Tooltip title={!canModify ? "Requires Admin or Manager role" : "Assign Seat"}>
+                                                    <span>
+                                                        <IconButton
+                                                            color="success"
+                                                            size="small"
+                                                            disabled={!canModify}
+                                                            onClick={() => {
+                                                                setSelectedLicenseId(softwareLicense.id!);
+                                                                setIsAssignModelOpen(true);
+                                                            }}
+                                                        >
+                                                            <PersonAddIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
 
                                                 {/* 2. Edit Icon */}
-                                                <IconButton color="primary" size="small" onClick={() => handleEditClick(softwareLicense)}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
+                                                <Tooltip title={!canModify ? "Requires Admin or Manager role" : "Edit"}>
+                                                    <span>
+                                                        <IconButton color="primary" size="small" disabled={!canModify} onClick={() => handleEditClick(softwareLicense)}>
+                                                            <EditIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
                                                 {/* 3. Delete Icon (Triggers Soft Delete) */}
-                                                <IconButton color="error" size="small" onClick={() => handleDelete(softwareLicense.id!)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
+                                                <Tooltip title={!canModify ? "Requires Admin or Manager role" : "Delete"}>
+                                                    <span>
+                                                        <IconButton color="error" size="small" disabled={!canModify} onClick={() => handleDelete(softwareLicense.id!)}>
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -393,7 +418,7 @@ export default function Licenses() {
                     <Dialog open={isAssignModalOpen} onClose={() => setIsAssignModelOpen(false)} maxWidth="sm" fullWidth>
                         <DialogTitle>Assign Software Seat</DialogTitle>
                         <DialogContent>
-                            
+
                             {/* Show Current Users */}
                             {selectedLicense?.allocations && selectedLicense.allocations.length > 0 && (
                                 <Box sx={{ mb: 3, mt: 1 }}>
@@ -404,27 +429,27 @@ export default function Licenses() {
                                         {selectedLicense.allocations.map((allocation: any) => {
                                             const assignedUser = users.find(u => u.id === allocation.userId);
                                             return (
-                                                <Chip 
-                                                    key={allocation.id || allocation.userId} 
-                                                    label={assignedUser ? assignedUser.username : `User ID: ${allocation.userId}`} 
-                                                    size="small" 
-                                                    color="info" 
-                                                    variant="outlined" 
-                                                    onDelete={() => handleRemoveAllocation(selectedLicenseId!, allocation.userId)}
+                                                <Chip
+                                                    key={allocation.id || allocation.userId}
+                                                    label={assignedUser ? assignedUser.username : `User ID: ${allocation.userId}`}
+                                                    size="small"
+                                                    color="info"
+                                                    variant="outlined"
+                                                    onDelete={canModify ? () => handleRemoveAllocation(selectedLicenseId!, allocation.userId) : undefined}
                                                 />
                                             );
                                         })}
                                     </Box>
                                 </Box>
                             )}
-                            
+
                             {/* Dropdown Box */}
                             <Box sx={{ mt: 2 }}>
                                 <FormControl fullWidth size="small">
-                                    <InputLabel>Select Employee</InputLabel>
+                                    <InputLabel>Select User</InputLabel>
                                     <Select
                                         value={selectedUserId}
-                                        label="Select Employee"
+                                        label="Select User"
                                         onChange={(e) => setSelectedUserId(Number(e.target.value))}
                                     >
                                         {users.map((user) => {
@@ -441,9 +466,13 @@ export default function Licenses() {
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={() => setIsAssignModelOpen(false)} color="inherit">Cancel</Button>
-                            <Button onClick={handleAssignSeat} variant="contained" color="success">
-                                Confirm Assignment
-                            </Button>
+                            <Tooltip title={!canModify ? "Requires Admin or Manager role" : ""}>
+                                <span>
+                                    <Button onClick={handleAssignSeat} variant="contained" color="success" disabled={!canModify}>
+                                        Confirm Assignment
+                                    </Button>
+                                </span>
+                            </Tooltip>
                         </DialogActions>
                     </Dialog>
                 );

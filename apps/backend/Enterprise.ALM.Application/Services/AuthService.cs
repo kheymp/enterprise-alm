@@ -56,7 +56,7 @@ public class AuthService : IAuthService
             Email = dto.Email,
             Username = dto.Email.Split('@')[0],
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            RoleId = 4,
+            RoleId = 3,
             IsActive = true
         };
         await _userRepository.AddAsync(newUser);

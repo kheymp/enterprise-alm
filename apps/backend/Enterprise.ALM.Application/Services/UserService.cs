@@ -37,7 +37,7 @@ public class UserService : IUserService
             Email = dto.Email,
             Department = dto.Department,
             IsActive = dto.IsActive,
-            RoleId = dto.RoleId == 0 ? 4 : dto.RoleId
+            RoleId = dto.RoleId == 0 ? 3 : dto.RoleId
         };
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();

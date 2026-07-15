@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Chip, IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert, MenuItem, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Chip, IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert, MenuItem, Divider, Tooltip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
 import AddIcon from '@mui/icons-material/Add';
 import ClearIcon from '@mui/icons-material/Clear';
 import SaveIcon from '@mui/icons-material/Save';
+import { jwtDecode } from "jwt-decode";
 
 
 export default function Assets() {
@@ -33,9 +34,14 @@ export default function Assets() {
     const [maintenanceDescription, setMaintenanceDescription] = useState('');
     const [maintenanceCost, setMaintenanceCost] = useState<number | ''>('');
 
-
-
-
+    const token = localStorage.getItem("token");
+    let userRole = null;
+    if (token) {
+        const decoded: any = jwtDecode(token);
+        userRole = decoded.role;
+    }
+    const canModify = userRole === 'Admin' || userRole === 'Manager';
+    const canDelete = userRole === 'Admin';
     const fetchAssets = async () => {
         const token = localStorage.getItem('token');
         const res = await fetch("http://localhost:5132/api/assets", {
@@ -298,9 +304,13 @@ export default function Assets() {
                                 />
 
                                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                    <Button type="submit" variant="contained" color={editingAssetId ? "success" : "primary"} startIcon={editingAssetId ? <SaveIcon /> : <AddIcon />} fullWidth>
-                                        {editingAssetId ? "Update Asset" : "Save Asset"}
-                                    </Button>
+                                    <Tooltip title={!canModify ? "Requires Admin or Manager role" : ""}>
+                                        <span style={{ width: '100%' }}>
+                                            <Button type="submit" variant="contained" color={editingAssetId ? "success" : "primary"} startIcon={editingAssetId ? <SaveIcon /> : <AddIcon />} fullWidth disabled={!canModify}>
+                                                {editingAssetId ? "Update Asset" : "Save Asset"}
+                                            </Button>
+                                        </span>
+                                    </Tooltip>
                                     {editingAssetId && (
                                         <Button
                                             type="button"
@@ -362,13 +372,20 @@ export default function Assets() {
                                                 <IconButton color="info" size="small" onClick={() => fetchAssetDetails(asset.id)}>
                                                     <InfoIcon fontSize="small" />
                                                 </IconButton>
-                                                <IconButton color="primary" size="small" onClick={() => handleEditClick(asset)}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                                <IconButton color="error" size="small" onClick={() => handleDelete(asset.id)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-
+                                                <Tooltip title={!canModify ? "Requires Admin or Manager role" : "Edit"}>
+                                                    <span>
+                                                        <IconButton color="primary" size="small" disabled={!canModify} onClick={() => handleEditClick(asset)}>
+                                                            <EditIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
+                                                <Tooltip title={!canDelete ? "Requires Admin role" : "Delete"}>
+                                                    <span>
+                                                        <IconButton color="error" size="small" disabled={!canDelete} onClick={() => handleDelete(asset.id)}>
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -458,7 +475,11 @@ export default function Assets() {
                                         required
                                         sx={{ width: 140 }}
                                     />
-                                    <Button type="submit" variant="contained" size="small">Save</Button>
+                                    <Tooltip title={!canModify ? "Requires Admin or Manager role" : ""}>
+                                        <span>
+                                            <Button type="submit" variant="contained" size="small" disabled={!canModify}>Save</Button>
+                                        </span>
+                                    </Tooltip>
                                 </Box>
                             </Grid>
                         </Grid>

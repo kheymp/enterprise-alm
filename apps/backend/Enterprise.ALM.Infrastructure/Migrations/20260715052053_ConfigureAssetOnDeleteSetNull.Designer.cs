@@ -4,6 +4,7 @@ using Enterprise.ALM.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Enterprise.ALM.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715052053_ConfigureAssetOnDeleteSetNull")]
+    partial class ConfigureAssetOnDeleteSetNull
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -155,6 +158,12 @@ namespace Enterprise.ALM.Infrastructure.Migrations
                             Id = 3,
                             Description = "Read-only access to monitoring dashboards.",
                             Name = "Viewer"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Description = "No system access. Used for asset asignment only.",
+                            Name = "Employee"
                         });
                 });
 

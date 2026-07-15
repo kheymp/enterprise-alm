@@ -28,7 +28,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     let userRole = null;
     if (token) {
         const decoded: any = jwtDecode(token);
-        userRole = decoded.role;   // "Admin", "Manager", "Viewer", or "Employee"
+        userRole = decoded.role;   // "Admin", "Manager", or "Viewer"
     }
 
     const theme = useTheme();

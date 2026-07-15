@@ -22,12 +22,17 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Asset>()
+            .HasOne(a => a.AssignedUser)
+            .WithMany()
+            .HasForeignKey(a => a.AssignedUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // This ensures EF Core hardcodes these foundational roles into the database
         modelBuilder.Entity<Role>().HasData(
             new Role { Id = 1, Name = "Admin", Description = "Full system authorization & rule control." },
             new Role { Id = 2, Name = "Manager", Description = "Read/Write assets, licenses, and seats." },
-            new Role { Id = 3, Name = "Viewer", Description = "Read-only access to monitoring dashboards." },
-            new Role { Id = 4, Name = "Employee", Description = "No system access. Used for asset asignment only." }
+            new Role { Id = 3, Name = "Viewer", Description = "Read-only access to monitoring dashboards." }
         );
     }
     

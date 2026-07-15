@@ -29,8 +29,7 @@ interface RoleDefinition {
 const SYSTEM_ROLES: RoleDefinition[] = [
     { id: 1, name: 'Admin', description: 'Full system authorization & rule control.' },
     { id: 2, name: 'Manager', description: 'Read/Write assets, licenses, and seats.' },
-    { id: 3, name: 'Viewer', description: 'Read-only access to monitoring dashboards.' },
-    { id: 4, name: 'Employee', description: 'No system access. For assignment tracking only.' }
+    { id: 3, name: 'Viewer', description: 'Read-only access to monitoring dashboards.' }
 ];
 
 const API_BASE = 'http://localhost:5132/api/users';
@@ -45,7 +44,7 @@ export default function UserManagement() {
     const [email, setEmail] = useState('');
     const [department, setDepartment] = useState('');
     const [isActive, setIsActive] = useState<boolean>(true);
-    const [roleId, setRoleId] = useState<number>(4);
+    const [roleId, setRoleId] = useState<number>(3);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
     useEffect(() => {
@@ -128,7 +127,7 @@ export default function UserManagement() {
         setEmail('');
         setDepartment('');
         setIsActive(true);
-        setRoleId(4);
+        setRoleId(3);
     };
 
     const handleDelete = async (id?: number) => {
