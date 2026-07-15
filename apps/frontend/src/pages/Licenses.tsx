@@ -297,7 +297,10 @@ export default function Licenses() {
 
                 <Grid size={{ xs: 12, md: 8 }}>
                     <TableContainer component={Paper} elevation={2}>
-                        <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                                Enterprise Software Licenses
+                            </Typography>
                             <FormControlLabel
                                 control={
                                     <Switch

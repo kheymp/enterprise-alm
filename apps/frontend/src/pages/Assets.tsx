@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Chip, IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert, MenuItem } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Chip, IconButton, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Grid, Card, CardContent, Box, TextField, FormControlLabel, Switch, Button, Alert, MenuItem, Divider } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
@@ -321,6 +321,12 @@ export default function Assets() {
                 {/* RIGHT COLUMN: The Table */}
                 <Grid size={{ xs: 12, md: 8 }}>
                     <TableContainer component={Paper} elevation={2}>
+                        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                                Active Enterprise Assets
+                            </Typography>
+                        </Box>
+                        <Divider />
                         <Table>
                             <TableHead sx={{ bgcolor: 'action.hover' }}>
                                 <TableRow>
