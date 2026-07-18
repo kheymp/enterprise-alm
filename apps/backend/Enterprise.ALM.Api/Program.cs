@@ -1,4 +1,5 @@
 using Enterprise.ALM.Infrastructure;
+using Enterprise.ALM.Infrastructure.BackgroundJobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -52,6 +53,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddScoped<IUserService, UserService>();
+
+// Background Jobs
+builder.Services.AddHostedService<LicenseExpirationJob>();
 
 builder.Services.AddControllers();
 

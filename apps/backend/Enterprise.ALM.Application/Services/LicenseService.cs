@@ -103,6 +103,16 @@ public class LicenseService : ILicenseService
     {
         var license = await _licenseRepository.GetByIdAsync(licenseId);
         if (license == null) return (false, "License not found.");
+        // BUSINESS RULE: Prevent allocation if license is inactive or expired
+        if (!license.IsActive)
+            return (false, "Cannot allocate seats on an inactive license.");
+        if (license.RenewalDate < DateTime.UtcNow)
+        {
+            // Auto-deactivate the expired license as a defensive measure
+            license.IsActive = false;
+            await _licenseRepository.SaveChangesAsync();
+            return (false, "Cannot allocate seats. This license has expired and has been deactivated.");
+        }
         // BUSINESS RULE: Check seat availability
         var currentUsedSeats = await _licenseRepository.GetAllocationCountAsync(licenseId);
         if (currentUsedSeats >= license.TotalSeats)
