@@ -8,6 +8,7 @@ import UserManagement from './pages/UserManagement';
 import Assets from './pages/Assets';
 import Licenses from './pages/Licenses';
 import Dashboard from './pages/Dashboard';
+import AuditLog from './pages/AuditLog';
 
 // 1. The Bouncer (Protected Route)
 const ProtectedRoute = ({
@@ -66,6 +67,14 @@ export default function App() {
           <ProtectedRoute allowedRoles={["Admin", "Manager", "Viewer"]}>
             <MainLayout>
               <Licenses />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/audit-log" element={
+          <ProtectedRoute allowedRoles={["Admin"]}>
+            <MainLayout>
+              <AuditLog />
             </MainLayout>
           </ProtectedRoute>
         } />
