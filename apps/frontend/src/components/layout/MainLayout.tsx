@@ -10,6 +10,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import LaptopMacIcon from '@mui/icons-material/LaptopMac';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import HistoryIcon from '@mui/icons-material/History';
 import { jwtDecode } from "jwt-decode";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -89,6 +90,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         <ListItemButton selected={currentPath === '/users'} onClick={() => navigate('/users')}>
                             <ListItemIcon><PeopleIcon /></ListItemIcon>
                             <ListItemText primary="User Management" />
+                        </ListItemButton>
+                    </ListItem>
+                )}
+
+                {userRole === "Admin" && (
+                    <ListItem disablePadding>
+                        <ListItemButton selected={currentPath === '/audit-log'} onClick={() => navigate('/audit-log')}>
+                            <ListItemIcon><HistoryIcon /></ListItemIcon>
+                            <ListItemText primary="Audit Trail" />
                         </ListItemButton>
                     </ListItem>
                 )}
