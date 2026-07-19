@@ -8,7 +8,7 @@ import {
     useMediaQuery, useTheme,
     Dialog, DialogTitle, DialogContent, DialogActions,
     Snackbar, Skeleton, InputAdornment, Pagination, Tooltip,
-    LinearProgress, Grid
+    LinearProgress, Grid, Menu, ListItemIcon, ListItemText
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -21,6 +21,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import InfoIcon from '@mui/icons-material/Info';
 import DevicesIcon from '@mui/icons-material/Devices';
 import BuildIcon from '@mui/icons-material/Build';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
 
 const API_BASE = 'http://localhost:5132/api/assets';
@@ -570,9 +571,7 @@ function TableSkeletonRows({ count = 5 }: { count?: number }) {
                     <TableCell align="center"><Skeleton variant="rounded" width={56} height={24} sx={{ mx: 'auto' }} /></TableCell>
                     <TableCell><Skeleton variant="text" width={80} /></TableCell>
                     <TableCell align="right">
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                            <Skeleton variant="circular" width={28} height={28} />
-                            <Skeleton variant="circular" width={28} height={28} />
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <Skeleton variant="circular" width={28} height={28} />
                         </Box>
                     </TableCell>
@@ -661,6 +660,62 @@ function MobileAssetCard({ asset, canModify, canDelete, onDetails, onEdit, onDel
                 </Button>
             </CardActions>
         </Card>
+    );
+}
+
+/* ── Row actions overflow menu ── */
+function AssetRowActions({ asset, canModify, canDelete, onDetails, onEdit, onDelete }: {
+    asset: any;
+    canModify: boolean;
+    canDelete: boolean;
+    onDetails: (asset: any) => void;
+    onEdit: (asset: any) => void;
+    onDelete: (asset: any) => void;
+}) {
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const open = Boolean(anchorEl);
+    const handleClose = () => setAnchorEl(null);
+
+    return (
+        <>
+            <Tooltip title="Actions">
+                <IconButton
+                    size="small"
+                    aria-label="Row actions"
+                    aria-haspopup="true"
+                    aria-expanded={open ? 'true' : undefined}
+                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                >
+                    <MoreVertIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
+            <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{ paper: { sx: { minWidth: 180 } } }}
+            >
+                <MenuItem onClick={() => { handleClose(); onDetails(asset); }}>
+                    <ListItemIcon><InfoIcon fontSize="small" color="info" /></ListItemIcon>
+                    <ListItemText>View details</ListItemText>
+                </MenuItem>
+                <MenuItem disabled={!canModify} onClick={() => { handleClose(); onEdit(asset); }}>
+                    <ListItemIcon><EditIcon fontSize="small" color={canModify ? 'primary' : 'disabled'} /></ListItemIcon>
+                    <ListItemText primary="Edit" secondary={!canModify ? 'Requires Admin or Manager' : undefined} />
+                </MenuItem>
+                <Divider />
+                <MenuItem
+                    disabled={!canDelete}
+                    onClick={() => { handleClose(); onDelete(asset); }}
+                    sx={{ color: canDelete ? 'error.main' : undefined }}
+                >
+                    <ListItemIcon><DeleteIcon fontSize="small" color={canDelete ? 'error' : 'disabled'} /></ListItemIcon>
+                    <ListItemText primary="Delete" secondary={!canDelete ? 'Requires Admin' : undefined} />
+                </MenuItem>
+            </Menu>
+        </>
     );
 }
 
@@ -1005,25 +1060,14 @@ export default function Assets() {
                                             )}
                                         </TableCell>
                                         <TableCell align="right">
-                                            <Tooltip title="View details & depreciation">
-                                                <IconButton color="info" size="small" onClick={() => fetchAssetDetails(asset.id)}>
-                                                    <InfoIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title={!canModify ? 'Requires Admin or Manager role' : 'Edit'}>
-                                                <span>
-                                                    <IconButton color="primary" size="small" disabled={!canModify} onClick={() => handleOpenEdit(asset)}>
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
-                                            <Tooltip title={!canDelete ? 'Requires Admin role' : 'Delete'}>
-                                                <span>
-                                                    <IconButton color="error" size="small" disabled={!canDelete} onClick={() => handleOpenDelete(asset)}>
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
+                                            <AssetRowActions
+                                                asset={asset}
+                                                canModify={canModify}
+                                                canDelete={canDelete}
+                                                onDetails={(a) => fetchAssetDetails(a.id)}
+                                                onEdit={handleOpenEdit}
+                                                onDelete={handleOpenDelete}
+                                            />
                                         </TableCell>
                                     </TableRow>
                                 ))

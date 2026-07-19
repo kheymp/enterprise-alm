@@ -234,6 +234,24 @@ export default function Dashboard() {
     ];
 
     const COLORS = ['#4f46e5', '#e2e8f0'];
+
+    // Custom rounded legend renderer
+    const renderLegend = (props: any) => {
+        const { payload } = props;
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+                {payload.map((entry: any, index: number) => (
+                    <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                            width: 10, height: 10, borderRadius: '50%',
+                            backgroundColor: entry.color, display: 'inline-block'
+                        }} />
+                        <span style={{ fontSize: 13, color: '#64748b' }}>{entry.value}</span>
+                    </div>
+                ))}
+            </div>
+        );
+    };
     const seatUtilization = summary.totalSeatsOwned > 0
         ? Math.round((summary.totalSeatsUsed / summary.totalSeatsOwned) * 100)
         : 0;
@@ -388,6 +406,7 @@ export default function Dashboard() {
                                         innerRadius={65}
                                         outerRadius={95}
                                         paddingAngle={5}
+                                        cornerRadius={6}
                                         dataKey="value"
                                     >
                                         {assetData.map((_, index) => (
@@ -395,7 +414,7 @@ export default function Dashboard() {
                                         ))}
                                     </Pie>
                                     <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend verticalAlign="bottom" height={36} />
+                                    <Legend verticalAlign="bottom" height={36} content={renderLegend} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </Box>
@@ -430,6 +449,7 @@ export default function Dashboard() {
                                         innerRadius={65}
                                         outerRadius={95}
                                         paddingAngle={5}
+                                        cornerRadius={6}
                                         dataKey="value"
                                     >
                                         {licenseData.map((_, index) => (
@@ -437,7 +457,7 @@ export default function Dashboard() {
                                         ))}
                                     </Pie>
                                     <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend verticalAlign="bottom" height={36} />
+                                    <Legend verticalAlign="bottom" height={36} content={renderLegend} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </Box>

@@ -7,7 +7,8 @@ import {
     Stack, Card, CardContent, CardActions,
     useMediaQuery, useTheme,
     Dialog, DialogTitle, DialogContent, DialogActions,
-    Snackbar, Skeleton, InputAdornment, Pagination, Tooltip
+    Snackbar, Skeleton, InputAdornment, Pagination, Tooltip,
+    Menu, ListItemIcon, ListItemText
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EditIcon from '@mui/icons-material/Edit';
@@ -18,6 +19,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import GroupIcon from '@mui/icons-material/Group';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 /* ── Types ── */
 interface User {
@@ -321,8 +323,7 @@ function TableSkeletonRows({ count = 5 }: { count?: number }) {
                     <TableCell align="center"><Skeleton variant="rounded" width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
                     <TableCell align="center"><Skeleton variant="rounded" width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
                     <TableCell align="right">
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                            <Skeleton variant="circular" width={28} height={28} />
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <Skeleton variant="circular" width={28} height={28} />
                         </Box>
                     </TableCell>
@@ -407,6 +408,51 @@ function MobileUserCard({ user, onEdit, onDelete }: {
                 </Button>
             </CardActions>
         </Card>
+    );
+}
+
+/* ── Row actions overflow menu ── */
+function UserRowActions({ user, onEdit, onDelete }: {
+    user: User;
+    onEdit: (user: User) => void;
+    onDelete: (user: User) => void;
+}) {
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const open = Boolean(anchorEl);
+    const handleClose = () => setAnchorEl(null);
+
+    return (
+        <>
+            <Tooltip title="Actions">
+                <IconButton
+                    size="small"
+                    aria-label="Row actions"
+                    aria-haspopup="true"
+                    aria-expanded={open ? 'true' : undefined}
+                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                >
+                    <MoreVertIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
+            <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{ paper: { sx: { minWidth: 160 } } }}
+            >
+                <MenuItem onClick={() => { handleClose(); onEdit(user); }}>
+                    <ListItemIcon><EditIcon fontSize="small" color="primary" /></ListItemIcon>
+                    <ListItemText>Edit</ListItemText>
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={() => { handleClose(); onDelete(user); }} sx={{ color: 'error.main' }}>
+                    <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+                    <ListItemText>Delete</ListItemText>
+                </MenuItem>
+            </Menu>
+        </>
     );
 }
 
@@ -685,16 +731,11 @@ export default function UserManagement() {
                                         </TableCell>
 
                                         <TableCell align="right">
-                                            <Tooltip title="Edit user">
-                                                <IconButton color="primary" size="small" onClick={() => handleOpenEdit(user)} sx={{ mr: 0.5 }}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete user">
-                                                <IconButton color="error" size="small" onClick={() => handleOpenDelete(user)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <UserRowActions
+                                                user={user}
+                                                onEdit={handleOpenEdit}
+                                                onDelete={handleOpenDelete}
+                                            />
                                         </TableCell>
                                     </TableRow>
                                 ))

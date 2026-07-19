@@ -8,7 +8,7 @@ import {
     useMediaQuery, useTheme,
     Dialog, DialogTitle, DialogContent, DialogActions,
     Snackbar, Skeleton, InputAdornment, Pagination, Tooltip,
-    LinearProgress
+    LinearProgress, Menu, ListItemIcon, ListItemText
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -21,6 +21,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WarningIcon from '@mui/icons-material/Warning';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import KeyIcon from '@mui/icons-material/Key';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
 
 /* ── Types ── */
@@ -473,9 +474,7 @@ function TableSkeletonRows({ count = 5 }: { count?: number }) {
                     <TableCell><Skeleton variant="rounded" width={100} height={24} /></TableCell>
                     <TableCell align="center"><Skeleton variant="rounded" width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
                     <TableCell align="right">
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                            <Skeleton variant="circular" width={28} height={28} />
-                            <Skeleton variant="circular" width={28} height={28} />
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <Skeleton variant="circular" width={28} height={28} />
                         </Box>
                     </TableCell>
@@ -578,6 +577,62 @@ function MobileLicenseCard({ license, canModify, onEdit, onDelete, onAssign }: {
                 </Button>
             </CardActions>
         </Card>
+    );
+}
+
+/* ── Row actions overflow menu ── */
+function LicenseRowActions({ license, canModify, onAssign, onEdit, onDelete }: {
+    license: License;
+    canModify: boolean;
+    onAssign: (license: License) => void;
+    onEdit: (license: License) => void;
+    onDelete: (license: License) => void;
+}) {
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const open = Boolean(anchorEl);
+    const handleClose = () => setAnchorEl(null);
+    const gateNote = !canModify ? 'Requires Admin or Manager' : undefined;
+
+    return (
+        <>
+            <Tooltip title="Actions">
+                <IconButton
+                    size="small"
+                    aria-label="Row actions"
+                    aria-haspopup="true"
+                    aria-expanded={open ? 'true' : undefined}
+                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                >
+                    <MoreVertIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
+            <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{ paper: { sx: { minWidth: 180 } } }}
+            >
+                <MenuItem disabled={!canModify} onClick={() => { handleClose(); onAssign(license); }}>
+                    <ListItemIcon><PersonAddIcon fontSize="small" color={canModify ? 'success' : 'disabled'} /></ListItemIcon>
+                    <ListItemText primary="Assign seat" secondary={gateNote} />
+                </MenuItem>
+                <MenuItem disabled={!canModify} onClick={() => { handleClose(); onEdit(license); }}>
+                    <ListItemIcon><EditIcon fontSize="small" color={canModify ? 'primary' : 'disabled'} /></ListItemIcon>
+                    <ListItemText primary="Edit" secondary={gateNote} />
+                </MenuItem>
+                <Divider />
+                <MenuItem
+                    disabled={!canModify}
+                    onClick={() => { handleClose(); onDelete(license); }}
+                    sx={{ color: canModify ? 'error.main' : undefined }}
+                >
+                    <ListItemIcon><DeleteIcon fontSize="small" color={canModify ? 'error' : 'disabled'} /></ListItemIcon>
+                    <ListItemText primary="Delete" secondary={gateNote} />
+                </MenuItem>
+            </Menu>
+        </>
     );
 }
 
@@ -936,27 +991,13 @@ export default function Licenses() {
                                                 />
                                             </TableCell>
                                             <TableCell align="right">
-                                                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : 'Assign Seat'}>
-                                                    <span>
-                                                        <IconButton color="success" size="small" disabled={!canModify} onClick={() => handleOpenAssign(license)}>
-                                                            <PersonAddIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
-                                                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : 'Edit'}>
-                                                    <span>
-                                                        <IconButton color="primary" size="small" disabled={!canModify} onClick={() => handleOpenEdit(license)}>
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
-                                                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : 'Delete'}>
-                                                    <span>
-                                                        <IconButton color="error" size="small" disabled={!canModify} onClick={() => handleOpenDelete(license)}>
-                                                            <DeleteIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
+                                                <LicenseRowActions
+                                                    license={license}
+                                                    canModify={canModify}
+                                                    onAssign={handleOpenAssign}
+                                                    onEdit={handleOpenEdit}
+                                                    onDelete={handleOpenDelete}
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     );
