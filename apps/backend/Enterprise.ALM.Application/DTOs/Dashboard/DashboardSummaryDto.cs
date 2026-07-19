@@ -24,6 +24,7 @@ public class DashboardSummaryDto
 public class ExpiringLicenseDto
 {
     public string Name { get; set; } = string.Empty;
+    public string Publisher { get; set; } = string.Empty;
     public DateTime RenewalDate { get; set; }
     public int DaysRemaining { get; set; }
 }

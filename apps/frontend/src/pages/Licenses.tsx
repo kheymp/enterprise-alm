@@ -1,102 +1,125 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, InputLabel, FormControl, Box, Button, Card, CardContent, Container, Grid, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography, FormControlLabel, Switch, Chip, Tooltip } from "@mui/material";
-import React, { useEffect, useState } from "react";
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-
+import { useState, useEffect, useMemo } from 'react';
+import {
+    Container, Typography, Box, TextField, Button, Table, TableBody, TableCell,
+    TableContainer, TableHead, TableRow, Paper, Avatar,
+    CircularProgress, Alert, IconButton, Divider, Chip,
+    FormControl, FormControlLabel, Switch, InputLabel, Select, MenuItem,
+    Stack, Card, CardContent, CardActions,
+    useMediaQuery, useTheme,
+    Dialog, DialogTitle, DialogContent, DialogActions,
+    Snackbar, Skeleton, InputAdornment, Pagination, Tooltip,
+    LinearProgress
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import ClearIcon from '@mui/icons-material/Clear';
 import SaveIcon from '@mui/icons-material/Save';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WarningIcon from '@mui/icons-material/Warning';
-import { jwtDecode } from "jwt-decode";
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import KeyIcon from '@mui/icons-material/Key';
+import { jwtDecode } from 'jwt-decode';
 
+/* ── Types ── */
+interface License {
+    id?: number;
+    name: string;
+    publisher: string;
+    totalSeats: number;
+    costPerSeat: number;
+    renewalDate: string;
+    isActive: boolean;
+    allocations: any[];
+}
 
-export default function Licenses() {
+const API_BASE = 'http://localhost:5132/api/licenses';
+const USERS_API = 'http://localhost:5132/api/users';
+const PAGE_SIZE = 8;
 
-    interface License {
-        id?: number;
-        name: string;
-        publisher: string;
-        totalSeats: number;
-        costPerSeat: number;
-        renewalDate: string;
-        isActive: boolean;
-        allocations: any[];
+/* ── Helpers ── */
+function getDaysUntilRenewal(dateString: string): number {
+    return (new Date(dateString).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
+}
+
+function isExpiringSoon(dateString: string): boolean {
+    const days = getDaysUntilRenewal(dateString);
+    return days > 0 && days <= 30;
+}
+
+function isExpired(dateString: string): boolean {
+    return getDaysUntilRenewal(dateString) <= 0;
+}
+
+function getSeatUtilization(license: License): number {
+    const used = license.allocations?.length || 0;
+    if (license.totalSeats === 0) return 0;
+    return (used / license.totalSeats) * 100;
+}
+
+function getSeatColor(pct: number): 'success' | 'warning' | 'error' {
+    if (pct >= 90) return 'error';
+    if (pct >= 70) return 'warning';
+    return 'success';
+}
+
+function getRenewalChip(dateString: string) {
+    const date = new Date(dateString).toLocaleDateString();
+    if (isExpired(dateString)) {
+        return <Chip label={`Expired ${date}`} color="error" size="small" variant="outlined" icon={<WarningIcon />} />;
     }
+    if (isExpiringSoon(dateString)) {
+        const days = Math.ceil(getDaysUntilRenewal(dateString));
+        return <Chip label={`${date} (${days}d left)`} color="warning" size="small" variant="outlined" icon={<WarningIcon />} />;
+    }
+    return <Typography variant="body2">{date}</Typography>;
+}
 
-    const [softwareLicenses, setSoftwareLicenses] = useState<License[]>([]);
+/* ── License Form Dialog ── */
+function LicenseFormDialog({ open, onClose, editingLicense, onSaved, canModify }: {
+    open: boolean;
+    onClose: () => void;
+    editingLicense: License | null;
+    onSaved: (message: string) => void;
+    canModify: boolean;
+}) {
+    const theme = useTheme();
+    const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
     const [name, setName] = useState('');
     const [publisher, setPublisher] = useState('');
     const [totalSeats, setTotalSeats] = useState<number | ''>('');
     const [costPerSeat, setCostPerSeat] = useState<number | ''>('');
     const [renewalDate, setRenewalDate] = useState(new Date().toISOString().split('T')[0]);
-    const [isActive, setIsActive] = useState<boolean>(true);
-    const [editingSoftwareLicenseId, setEditingSoftwareLicenseId] = useState<number | null>(null);
+    const [isActive, setIsActive] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
-    const [, setError] = useState('');
-    const [showInactive, setShowInactive] = useState(false);
-
-    const token = localStorage.getItem("token");
-    let userRole = null;
-    if (token) {
-        const decoded: any = jwtDecode(token);
-        userRole = decoded.role;
-    }
-    const canModify = userRole === 'Admin' || userRole === 'Manager';
-
-    /* UseState for license allocation */
-
-    const [isAssignModalOpen, setIsAssignModelOpen] = useState<boolean>(false);
-    const [selectedLicenseId, setSelectedLicenseId] = useState<number | null>(null);
-    const [users, setUsers] = useState<any[]>([]);
-    const [selectedUserId, setSelectedUserId] = useState<number | ''>('');
-    // const selectedLicense = softwareLicenses.find(sl => sl.id === selectedLicenseId);
-
-
-    const handleEditClick = (softwareLicense: any) => {
-        setName(softwareLicense.name);
-        setPublisher(softwareLicense.publisher);
-        setTotalSeats(softwareLicense.totalSeats);
-        setCostPerSeat(softwareLicense.costPerSeat);
-        setRenewalDate(softwareLicense.renewalDate.split('T')[0]);
-        setIsActive(softwareLicense.isActive);
-        setEditingSoftwareLicenseId(softwareLicense.id);
-    }
-
-    const handleCancelEdit = () => {
-        setEditingSoftwareLicenseId(null);
-        setName('');
-        setPublisher('');
-        setTotalSeats('');
-        setCostPerSeat('');
-        setRenewalDate(new Date().toISOString().split('T')[0]);
-    }
-
-    const handleDelete = async (id: number) => {
-        if (!window.confirm('Are you sure you want to permanently delete this software license?')) return;
-
-        const token = localStorage.getItem("token");
-
-        try {
-            const res = await fetch(`http://localhost:5132/api/licenses/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-
-            if (!res.ok) throw new Error('Failed to delete asset. (Are you an Admin?)');
-
-            fetchSoftwareLicenses();
-        } catch (err: any) {
-            setError(err.message);
+    useEffect(() => {
+        if (open) {
+            if (editingLicense) {
+                setName(editingLicense.name);
+                setPublisher(editingLicense.publisher);
+                setTotalSeats(editingLicense.totalSeats);
+                setCostPerSeat(editingLicense.costPerSeat);
+                setRenewalDate(editingLicense.renewalDate.split('T')[0]);
+                setIsActive(editingLicense.isActive);
+            } else {
+                setName('');
+                setPublisher('');
+                setTotalSeats('');
+                setCostPerSeat('');
+                setRenewalDate(new Date().toISOString().split('T')[0]);
+                setIsActive(true);
+            }
+            setFormError(null);
         }
-    }
+    }, [open, editingLicense]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!name || !publisher || !totalSeats || !costPerSeat || !renewalDate) return;
 
         const payload = {
@@ -108,376 +131,914 @@ export default function Licenses() {
             isActive
         };
 
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem('token');
+        const url = editingLicense ? `${API_BASE}/${editingLicense.id}` : API_BASE;
+        const method = editingLicense ? 'PUT' : 'POST';
 
         try {
-            const url = editingSoftwareLicenseId ? `http://localhost:5132/api/licenses/${editingSoftwareLicenseId}` : `http://localhost:5132/api/licenses`;
-            const method = editingSoftwareLicenseId ? 'PUT' : 'POST'
-
+            setSaving(true);
             const res = await fetch(url, {
-                method: method,
+                method,
                 headers: {
                     'Content-Type': 'application/json',
-                    "Authorization": `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(payload)
             });
 
-            if (!res.ok) throw new Error("Failed to save software license data.");
-            handleCancelEdit();
-            fetchSoftwareLicenses();
+            if (!res.ok) throw new Error('Failed to save software license data.');
 
+            onSaved(editingLicense ? `"${name}" updated successfully.` : `"${name}" registered successfully.`);
+            onClose();
         } catch (err: any) {
-            setError(err.message);
+            setFormError(err.message);
+        } finally {
+            setSaving(false);
         }
+    };
+
+    return (
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullScreen={fullScreen}
+            maxWidth="sm"
+            fullWidth
+            slotProps={{ paper: { sx: { borderRadius: fullScreen ? 0 : 2 } } }}
+        >
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
+                {editingLicense ? <EditIcon color="primary" /> : <AddIcon color="primary" />}
+                {editingLicense ? 'Edit Software License' : 'Register New Software License'}
+                <Box sx={{ flexGrow: 1 }} />
+                <IconButton size="small" onClick={onClose} aria-label="close">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+
+            <Divider />
+
+            <Box component="form" onSubmit={handleSubmit}>
+                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 3 }}>
+                    {formError && (
+                        <Alert severity="error" onClose={() => setFormError(null)}>
+                            {formError}
+                        </Alert>
+                    )}
+
+                    <TextField label="Name" variant="outlined" fullWidth size="small" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+                    <TextField label="Publisher" variant="outlined" fullWidth size="small" value={publisher} onChange={(e) => setPublisher(e.target.value)} required />
+                    <TextField
+                        label="Total Seats"
+                        variant="outlined"
+                        fullWidth
+                        size="small"
+                        type="number"
+                        value={totalSeats}
+                        onChange={(e) => setTotalSeats(e.target.value === '' ? '' : Number(e.target.value))}
+                        slotProps={{ htmlInput: { min: 0 } }}
+                        required
+                    />
+                    <TextField
+                        label="Cost Per Seat"
+                        variant="outlined"
+                        fullWidth
+                        size="small"
+                        type="number"
+                        value={costPerSeat}
+                        onChange={(e) => setCostPerSeat(e.target.value === '' ? '' : Number(e.target.value))}
+                        slotProps={{
+                            htmlInput: { min: 0, step: '0.01' },
+                            input: {
+                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            },
+                        }}
+                        required
+                    />
+                    <TextField
+                        label="Renewal Date"
+                        type="date"
+                        variant="outlined"
+                        fullWidth
+                        size="small"
+                        value={renewalDate}
+                        onChange={(e) => setRenewalDate(e.target.value)}
+                        required
+                    />
+
+                    <FormControlLabel
+                        control={<Switch checked={isActive} onChange={(e) => setIsActive(e.target.checked)} color="primary" />}
+                        label={isActive ? 'Status: Active' : 'Status: Inactive'}
+                    />
+                </DialogContent>
+
+                <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+                    <Button variant="outlined" color="inherit" onClick={onClose} startIcon={<ClearIcon />}>
+                        Cancel
+                    </Button>
+                    <Tooltip title={!canModify ? 'Requires Admin or Manager role' : ''}>
+                        <span>
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                color={editingLicense ? 'success' : 'primary'}
+                                startIcon={saving ? <CircularProgress size={16} color="inherit" /> : (editingLicense ? <SaveIcon /> : <AddIcon />)}
+                                disabled={saving || !canModify}
+                            >
+                                {editingLicense ? 'Save Changes' : 'Register'}
+                            </Button>
+                        </span>
+                    </Tooltip>
+                </DialogActions>
+            </Box>
+        </Dialog>
+    );
+}
+
+/* ── Delete Confirmation Dialog ── */
+function DeleteConfirmDialog({ open, license, onClose, onConfirm, deleting }: {
+    open: boolean;
+    license: License | null;
+    onClose: () => void;
+    onConfirm: () => void;
+    deleting: boolean;
+}) {
+    if (!license) return null;
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main', fontWeight: 600 }}>
+                <WarningAmberIcon />
+                Delete License
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ pt: 3 }}>
+                <Typography variant="body1" gutterBottom>
+                    Are you sure you want to permanently delete this software license?
+                </Typography>
+
+                <Paper variant="outlined" sx={{ p: 2, mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: '#7c3aed', width: 40, height: 40, fontSize: 16 }}>
+                        <KeyIcon fontSize="small" />
+                    </Avatar>
+                    <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{license.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">{license.publisher} · {license.allocations?.length || 0} seats assigned</Typography>
+                    </Box>
+                </Paper>
+
+                {(license.allocations?.length || 0) > 0 && (
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                        This license has {license.allocations.length} active seat allocation(s). Deleting it will remove all assignments.
+                    </Alert>
+                )}
+
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+                    This action cannot be undone.
+                </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+                <Button variant="outlined" color="inherit" onClick={onClose}>Cancel</Button>
+                <Button
+                    variant="contained"
+                    color="error"
+                    onClick={onConfirm}
+                    startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+                    disabled={deleting}
+                >
+                    Delete
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
+/* ── Assign Seat Dialog (polished) ── */
+function AssignSeatDialog({ open, license, users, canModify, onClose, onAssign, onRemove }: {
+    open: boolean;
+    license: License | null;
+    users: any[];
+    canModify: boolean;
+    onClose: () => void;
+    onAssign: (licenseId: number, userId: number) => Promise<void>;
+    onRemove: (licenseId: number, userId: number) => Promise<void>;
+}) {
+    const [selectedUserId, setSelectedUserId] = useState<number | ''>('');
+    const [assigning, setAssigning] = useState(false);
+
+    useEffect(() => {
+        if (open) setSelectedUserId('');
+    }, [open]);
+
+    if (!license) return null;
+
+    const utilization = getSeatUtilization(license);
+    const usedSeats = license.allocations?.length || 0;
+    const isFull = usedSeats >= license.totalSeats;
+
+    const handleAssign = async () => {
+        if (!selectedUserId || !license.id) return;
+        setAssigning(true);
+        try {
+            await onAssign(license.id, selectedUserId as number);
+            setSelectedUserId('');
+        } finally {
+            setAssigning(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
+                <PersonAddIcon color="primary" />
+                Assign Seat — {license.name}
+                <Box sx={{ flexGrow: 1 }} />
+                <IconButton size="small" onClick={onClose}>
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ pt: 3 }}>
+                {/* Seat capacity bar */}
+                <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">Seat Utilization</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                            {usedSeats} / {license.totalSeats}
+                        </Typography>
+                    </Box>
+                    <LinearProgress
+                        variant="determinate"
+                        value={Math.min(utilization, 100)}
+                        color={getSeatColor(utilization)}
+                        sx={{ height: 8, borderRadius: 4 }}
+                    />
+                    {isFull && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                            All seats are occupied. Remove an assignment before adding a new one.
+                        </Typography>
+                    )}
+                </Paper>
+
+                {/* Current allocations */}
+                {license.allocations && license.allocations.length > 0 && (
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Currently Assigned
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {license.allocations.map((allocation: any) => {
+                                const assignedUser = users.find(u => u.id === allocation.userId);
+                                return (
+                                    <Chip
+                                        key={allocation.id || allocation.userId}
+                                        avatar={
+                                            <Avatar sx={{ width: 24, height: 24, fontSize: 12 }}>
+                                                {(assignedUser?.username || '?').charAt(0).toUpperCase()}
+                                            </Avatar>
+                                        }
+                                        label={assignedUser ? assignedUser.username : `User #${allocation.userId}`}
+                                        size="small"
+                                        color="info"
+                                        variant="outlined"
+                                        onDelete={canModify ? () => onRemove(license.id!, allocation.userId) : undefined}
+                                    />
+                                );
+                            })}
+                        </Box>
+                    </Box>
+                )}
+
+                {/* User selector */}
+                {!isFull && (
+                    <FormControl fullWidth size="small">
+                        <InputLabel>Select User</InputLabel>
+                        <Select
+                            value={selectedUserId}
+                            label="Select User"
+                            onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                        >
+                            {users.map((user) => {
+                                const isAlreadyAssigned = license.allocations?.some((a: any) => a.userId === user.id);
+                                return (
+                                    <MenuItem key={user.id} value={user.id} disabled={isAlreadyAssigned}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Avatar sx={{ width: 24, height: 24, fontSize: 11 }}>
+                                                {user.username.charAt(0).toUpperCase()}
+                                            </Avatar>
+                                            {user.username} ({user.department})
+                                            {isAlreadyAssigned && <Chip label="Assigned" size="small" sx={{ ml: 1 }} />}
+                                        </Box>
+                                    </MenuItem>
+                                );
+                            })}
+                        </Select>
+                    </FormControl>
+                )}
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+                <Button onClick={onClose} color="inherit" variant="outlined">Close</Button>
+                {!isFull && (
+                    <Tooltip title={!canModify ? 'Requires Admin or Manager role' : ''}>
+                        <span>
+                            <Button
+                                onClick={handleAssign}
+                                variant="contained"
+                                color="success"
+                                disabled={!canModify || !selectedUserId || assigning}
+                                startIcon={assigning ? <CircularProgress size={16} color="inherit" /> : <PersonAddIcon />}
+                            >
+                                Assign Seat
+                            </Button>
+                        </span>
+                    </Tooltip>
+                )}
+            </DialogActions>
+        </Dialog>
+    );
+}
+
+/* ── Skeleton loaders ── */
+function TableSkeletonRows({ count = 5 }: { count?: number }) {
+    return (
+        <>
+            {Array.from({ length: count }).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton variant="text" width={120} /></TableCell>
+                    <TableCell><Skeleton variant="text" width={80} /></TableCell>
+                    <TableCell>
+                        <Skeleton variant="text" width={50} sx={{ mb: 0.5 }} />
+                        <Skeleton variant="rounded" width="100%" height={6} />
+                    </TableCell>
+                    <TableCell><Skeleton variant="text" width={60} /></TableCell>
+                    <TableCell><Skeleton variant="rounded" width={100} height={24} /></TableCell>
+                    <TableCell align="center"><Skeleton variant="rounded" width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                    <TableCell align="right">
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                            <Skeleton variant="circular" width={28} height={28} />
+                            <Skeleton variant="circular" width={28} height={28} />
+                            <Skeleton variant="circular" width={28} height={28} />
+                        </Box>
+                    </TableCell>
+                </TableRow>
+            ))}
+        </>
+    );
+}
+
+function MobileSkeletonCards({ count = 4 }: { count?: number }) {
+    return (
+        <Stack spacing={0}>
+            {Array.from({ length: count }).map((_, i) => (
+                <Card variant="outlined" sx={{ mb: 1.5 }} key={i}>
+                    <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                            <Skeleton variant="circular" width={36} height={36} />
+                            <Box sx={{ flex: 1 }}>
+                                <Skeleton variant="text" width="60%" />
+                                <Skeleton variant="text" width="40%" />
+                            </Box>
+                            <Skeleton variant="rounded" width={56} height={24} />
+                        </Box>
+                        <Skeleton variant="rounded" width="100%" height={6} sx={{ mb: 1 }} />
+                        <Skeleton variant="text" width="50%" />
+                    </CardContent>
+                </Card>
+            ))}
+        </Stack>
+    );
+}
+
+/* ── Mobile: card per license ── */
+function MobileLicenseCard({ license, canModify, onEdit, onDelete, onAssign }: {
+    license: License;
+    canModify: boolean;
+    onEdit: (license: License) => void;
+    onDelete: (license: License) => void;
+    onAssign: (license: License) => void;
+}) {
+    const usedSeats = license.allocations?.length || 0;
+    const utilization = getSeatUtilization(license);
+
+    return (
+        <Card variant="outlined" sx={{ mb: 1.5 }}>
+            <CardContent sx={{ pb: 0 }}>
+                {/* Top row: name + status */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <Avatar sx={{ bgcolor: '#7c3aed', width: 36, height: 36, fontSize: 14 }}>
+                        <KeyIcon sx={{ fontSize: 18 }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600, lineHeight: 1.3 }} noWrap>
+                            {license.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                            {license.publisher}
+                        </Typography>
+                    </Box>
+                    <Chip
+                        label={license.isActive ? 'Active' : 'Inactive'}
+                        color={license.isActive ? 'success' : 'error'}
+                        size="small"
+                        variant="outlined"
+                    />
+                </Box>
+
+                {/* Seat progress */}
+                <Box sx={{ mb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
+                        <Typography variant="caption" color="text.secondary">Seats</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>{usedSeats} / {license.totalSeats}</Typography>
+                    </Box>
+                    <LinearProgress
+                        variant="determinate"
+                        value={Math.min(utilization, 100)}
+                        color={getSeatColor(utilization)}
+                        sx={{ height: 6, borderRadius: 3 }}
+                    />
+                </Box>
+
+                {/* Details row */}
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">
+                        ${license.costPerSeat.toFixed(2)}/seat
+                    </Typography>
+                    {getRenewalChip(license.renewalDate)}
+                </Box>
+            </CardContent>
+
+            <CardActions sx={{ justifyContent: 'flex-end', pt: 0.5 }}>
+                <Button size="small" color="success" startIcon={<PersonAddIcon />} onClick={() => onAssign(license)} disabled={!canModify}>
+                    Assign
+                </Button>
+                <Button size="small" color="primary" startIcon={<EditIcon />} onClick={() => onEdit(license)} disabled={!canModify}>
+                    Edit
+                </Button>
+                <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => onDelete(license)} disabled={!canModify}>
+                    Delete
+                </Button>
+            </CardActions>
+        </Card>
+    );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Main Page Component
+   ════════════════════════════════════════════════════════════════ */
+export default function Licenses() {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    const [softwareLicenses, setSoftwareLicenses] = useState<License[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const [showInactive, setShowInactive] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+
+    // Dialogs
+    const [formOpen, setFormOpen] = useState(false);
+    const [editingLicense, setEditingLicense] = useState<License | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [licenseToDelete, setLicenseToDelete] = useState<License | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+    const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
+
+    const [users, setUsers] = useState<any[]>([]);
+
+    // Toast
+    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+        open: false, message: '', severity: 'success'
+    });
+
+    // Role check
+    const token = localStorage.getItem('token');
+    let userRole: string | null = null;
+    if (token) {
+        const decoded: any = jwtDecode(token);
+        userRole = decoded.role;
     }
+    const canModify = userRole === 'Admin' || userRole === 'Manager';
 
+    /* ── Data fetching ── */
     const fetchSoftwareLicenses = async () => {
-
         const token = localStorage.getItem('token');
-
-        const res = await fetch(`http://localhost:5132/api/licenses?showInactive=${showInactive}`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (res.ok) {
+        try {
+            setLoading(true);
+            const res = await fetch(`${API_BASE}?showInactive=${showInactive}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to fetch software licenses.');
             const data = await res.json();
             setSoftwareLicenses(data);
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'An error occurred.');
+        } finally {
+            setLoading(false);
         }
-
     };
 
     const fetchUsers = async () => {
         const token = localStorage.getItem('token');
-        const res = await fetch("http://localhost:5132/api/users", {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            setUsers(data);
-        }
-    }
-
-    const handleAssignSeat = async () => {
-        if (!selectedLicenseId || !selectedUserId) return;
-        const token = localStorage.getItem('token');
-
         try {
-            const res = await fetch(`http://localhost:5132/api/licenses/${selectedLicenseId}/allocate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({ userId: selectedUserId })
+            const res = await fetch(USERS_API, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!res.ok) throw new Error("Failed to assign seat. Are there any seats left?");
-
-            // Close modal, reset state, and refresh table!
-            setIsAssignModelOpen(false);
-            setSelectedUserId('');
-            fetchSoftwareLicenses();
-        } catch (err: any) {
-            setError(err.message);
+            if (res.ok) {
+                const data = await res.json();
+                setUsers(data);
+            }
+        } catch {
+            // Users fetch failure is non-critical
         }
-    }
-
-    const handleRemoveAllocation = async (licenseId: number, userId: number) => {
-        if (!window.confirm("Are you sure you want to remove this user from the license?")) return;
-
-        const token = localStorage.getItem('token');
-        try {
-            const res = await fetch(`http://localhost:5132/api/licenses/${licenseId}/allocate/${userId}`, {
-                method: 'DELETE',
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-
-            if (!res.ok) throw new Error("Failed to remove allocation.");
-
-            fetchSoftwareLicenses(); // Refresh the table and modal!
-        } catch (err: any) {
-            setError(err.message);
-        }
-    }
+    };
 
     useEffect(() => {
         fetchSoftwareLicenses();
         fetchUsers();
-    }, [showInactive])
+    }, [showInactive]);
 
-    const isExpiringSoon = (dateString: string) => {
-        // Calculate the difference in milliseconds, then convert to days
-        const daysLeft = (new Date(dateString).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
-        return daysLeft > 0 && daysLeft <= 30;
+    /* ── Filtered + paginated licenses ── */
+    const filteredLicenses = useMemo(() => {
+        if (!searchQuery.trim()) return softwareLicenses;
+        const q = searchQuery.toLowerCase();
+        return softwareLicenses.filter(l =>
+            l.name.toLowerCase().includes(q) ||
+            l.publisher.toLowerCase().includes(q)
+        );
+    }, [softwareLicenses, searchQuery]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredLicenses.length / PAGE_SIZE));
+    const paginatedLicenses = useMemo(() => {
+        const start = (page - 1) * PAGE_SIZE;
+        return filteredLicenses.slice(start, start + PAGE_SIZE);
+    }, [filteredLicenses, page]);
+
+    useEffect(() => { setPage(1); }, [searchQuery]);
+
+    /* ── Handlers ── */
+    const handleOpenCreate = () => {
+        setEditingLicense(null);
+        setFormOpen(true);
+    };
+
+    const handleOpenEdit = (license: License) => {
+        setEditingLicense(license);
+        setFormOpen(true);
+    };
+
+    const handleFormSaved = (message: string) => {
+        setSnackbar({ open: true, message, severity: 'success' });
+        fetchSoftwareLicenses();
+    };
+
+    const handleOpenDelete = (license: License) => {
+        setLicenseToDelete(license);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!licenseToDelete?.id) return;
+        const token = localStorage.getItem('token');
+        try {
+            setDeleting(true);
+            const res = await fetch(`${API_BASE}/${licenseToDelete.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to delete license. (Are you an Admin?)');
+            setSnackbar({ open: true, message: `"${licenseToDelete.name}" deleted successfully.`, severity: 'success' });
+            setDeleteDialogOpen(false);
+            setLicenseToDelete(null);
+            fetchSoftwareLicenses();
+        } catch (err: any) {
+            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const handleOpenAssign = (license: License) => {
+        setSelectedLicense(license);
+        setAssignDialogOpen(true);
+    };
+
+    const handleAssignSeat = async (licenseId: number, userId: number) => {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`${API_BASE}/${licenseId}/allocate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ userId })
+            });
+            if (!res.ok) throw new Error('Failed to assign seat. Are there any seats left?');
+            setSnackbar({ open: true, message: 'Seat assigned successfully.', severity: 'success' });
+            await fetchSoftwareLicenses();
+            // Refresh selected license in the assign dialog
+            const updated = (await fetch(`${API_BASE}?showInactive=${showInactive}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(r => r.json())) as License[];
+            const refreshed = updated.find(l => l.id === licenseId);
+            if (refreshed) setSelectedLicense(refreshed);
+        } catch (err: any) {
+            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        }
+    };
+
+    const handleRemoveAllocation = async (licenseId: number, userId: number) => {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`${API_BASE}/${licenseId}/allocate/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to remove allocation.');
+            setSnackbar({ open: true, message: 'Seat removed successfully.', severity: 'success' });
+            await fetchSoftwareLicenses();
+            // Refresh selected license in the assign dialog
+            const updated = (await fetch(`${API_BASE}?showInactive=${showInactive}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(r => r.json())) as License[];
+            const refreshed = updated.find(l => l.id === licenseId);
+            if (refreshed) setSelectedLicense(refreshed);
+        } catch (err: any) {
+            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        }
     };
 
     return (
-        <Container maxWidth="xl" sx={{ mt: 2 }}>
+        <Container maxWidth="xl" sx={{ mt: 2, px: isMobile ? 1 : undefined }}>
+            {/* ── Page header ── */}
+            <Box sx={{ mb: 3, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', gap: 2 }}>
+                <Box>
+                    <Typography variant={isMobile ? 'h6' : 'h5'} color="text.primary" gutterBottom sx={{ fontWeight: 600 }}>
+                        Enterprise Software Licenses
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Manage software license registrations, seat allocations, and renewal tracking.
+                    </Typography>
+                </Box>
+                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : ''}>
+                    <span>
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={handleOpenCreate}
+                            disabled={!canModify}
+                            sx={{ whiteSpace: 'nowrap', alignSelf: isMobile ? 'stretch' : 'flex-start' }}
+                        >
+                            Add License
+                        </Button>
+                    </span>
+                </Tooltip>
+            </Box>
 
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Enterprise Software Licenses Management
-            </Typography>
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                    {error}
+                </Alert>
+            )}
 
+            {/* ── Toolbar: search + filters ── */}
+            <Paper elevation={2} sx={{ p: 2, mb: 3, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2, alignItems: isMobile ? 'stretch' : 'center' }}>
+                <TextField
+                    placeholder="Search by name or publisher…"
+                    size="small"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ flex: 1, minWidth: 200 }}
+                    slotProps={{
+                        input: {
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon color="action" />
+                                </InputAdornment>
+                            ),
+                            endAdornment: searchQuery ? (
+                                <InputAdornment position="end">
+                                    <IconButton size="small" onClick={() => setSearchQuery('')}>
+                                        <ClearIcon fontSize="small" />
+                                    </IconButton>
+                                </InputAdornment>
+                            ) : null,
+                        }
+                    }}
+                />
 
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                    <FormControlLabel
+                        control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} color="primary" size="small" />}
+                        label={<Typography variant="body2">Show Inactive</Typography>}
+                        sx={{ mr: 0 }}
+                    />
+                    <Chip
+                        icon={<KeyIcon />}
+                        label={`${filteredLicenses.length} license${filteredLicenses.length !== 1 ? 's' : ''}${searchQuery ? ' found' : ''}`}
+                        variant="outlined"
+                        size="small"
+                    />
+                    {loading && <CircularProgress size={20} />}
+                </Box>
+            </Paper>
 
-            <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 4 }}>
-                    <Card elevation={2}>
-                        <CardContent>
-                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
-                                {editingSoftwareLicenseId ? <EditIcon color="primary" /> : <AddIcon color="primary" />}
-                                {editingSoftwareLicenseId ? "Edit Software License" : "Register New Software License"}
+            {/* ── Content: table (desktop) or cards (mobile) ── */}
+            {isMobile ? (
+                <Box>
+                    {loading ? (
+                        <MobileSkeletonCards />
+                    ) : paginatedLicenses.length === 0 ? (
+                        <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
+                            <KeyIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+                            <Typography variant="body2" color="text.secondary">
+                                {searchQuery
+                                    ? `No licenses match "${searchQuery}".`
+                                    : 'No software licenses found in the database.'}
                             </Typography>
-
-                            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <TextField
-                                    label="Name"
-                                    variant="outlined"
-                                    size="small"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
+                        </Paper>
+                    ) : (
+                        <Stack spacing={0}>
+                            {paginatedLicenses.map((license) => (
+                                <MobileLicenseCard
+                                    key={license.id}
+                                    license={license}
+                                    canModify={canModify}
+                                    onEdit={handleOpenEdit}
+                                    onDelete={handleOpenDelete}
+                                    onAssign={handleOpenAssign}
                                 />
-                                <TextField
-                                    label="Publisher"
-                                    variant="outlined"
-                                    size="small"
-                                    value={publisher}
-                                    onChange={(e) => setPublisher(e.target.value)}
-                                    required
-                                />
-                                <TextField
-                                    label="Total Seats"
-                                    variant="outlined"
-                                    size="small"
-                                    type="number"
-                                    value={totalSeats}
-                                    onChange={(e) => setTotalSeats(e.target.value === '' ? '' : Number(e.target.value))}
-                                    slotProps={{ htmlInput: { min: 0 } }}
-                                    required
-                                />
-                                <TextField
-                                    label="Cost Per Seat"
-                                    variant="outlined"
-                                    size="small"
-                                    type="number"
-                                    value={costPerSeat}
-                                    onChange={(e) => setCostPerSeat(e.target.value === '' ? '' : Number(e.target.value))}
-                                    slotProps={{ htmlInput: { min: 0 } }}
-                                    required
-                                />
-                                <TextField
-                                    label="Renewal Date"
-                                    type="date"
-                                    variant="outlined"
-                                    size="small"
-                                    value={renewalDate}
-                                    onChange={(e) => setRenewalDate(e.target.value)}
-                                    required
-                                />
-
-                                <FormControlLabel
-                                    control={
-                                        <Switch checked={isActive} onChange={(e) => setIsActive(e.target.checked)} color="primary" />
-                                    }
-                                    label={isActive ? "Status: Active" : "Status: Inactive"}
-                                />
-
-                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                    <Tooltip title={!canModify ? "Requires Admin or Manager role" : ""}>
-                                        <span style={{ width: '100%' }}>
-                                            <Button type="submit" variant="contained" color={editingSoftwareLicenseId ? "success" : "primary"} startIcon={editingSoftwareLicenseId ? <SaveIcon /> : <AddIcon />} fullWidth disabled={!canModify}>
-                                                {editingSoftwareLicenseId ? "Update Software License" : "Save Software License"}
-                                            </Button>
-                                        </span>
-                                    </Tooltip>
-                                    {editingSoftwareLicenseId && (
-                                        <Button
-                                            type="button"
-                                            variant="outlined"
-                                            color="inherit"
-                                            onClick={handleCancelEdit}
-                                            startIcon={<ClearIcon />}
-                                        >
-                                            Cancel
-                                        </Button>
-                                    )}
-                                </Box>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 8 }}>
-                    <TableContainer component={Paper} elevation={2}>
-                        <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                                Enterprise Software Licenses
-                            </Typography>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={showInactive}
-                                        onChange={(e) => setShowInactive(e.target.checked)}
-                                        color="primary"
-                                    />
-                                }
-                                label="Show Inactive Licenses"
-                            />
-                        </Box>
-                        <Table>
-                            <TableHead sx={{ bgcolor: "action.hover" }}>
+                            ))}
+                        </Stack>
+                    )}
+                </Box>
+            ) : (
+                <TableContainer component={Paper} elevation={2}>
+                    <Table aria-label="software licenses table" size="small">
+                        <TableHead sx={{ bgcolor: 'action.hover' }}>
+                            <TableRow>
+                                <TableCell><strong>Software Name</strong></TableCell>
+                                <TableCell><strong>Publisher</strong></TableCell>
+                                <TableCell><strong>Seats</strong></TableCell>
+                                <TableCell><strong>Cost / Seat</strong></TableCell>
+                                <TableCell><strong>Renewal</strong></TableCell>
+                                <TableCell align="center"><strong>Status</strong></TableCell>
+                                <TableCell align="right"><strong>Actions</strong></TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
+                                <TableSkeletonRows />
+                            ) : paginatedLicenses.length === 0 ? (
                                 <TableRow>
-                                    <TableCell><strong>Software Name</strong></TableCell>
-                                    <TableCell><strong>Publisher</strong></TableCell>
-                                    <TableCell><strong>Seats Used</strong></TableCell>
-                                    <TableCell><strong>Cost Per Seat</strong></TableCell>
-                                    <TableCell><strong>Renewal Date</strong></TableCell>
-                                    <TableCell align="center"><strong>Status</strong></TableCell>
-                                    <TableCell align="right"><strong>Actions</strong></TableCell>
+                                    <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                                        <KeyIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+                                        <Typography variant="body2" color="text.secondary">
+                                            {searchQuery
+                                                ? `No licenses match "${searchQuery}".`
+                                                : 'No software licenses found in the database.'}
+                                        </Typography>
+                                    </TableCell>
                                 </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {softwareLicenses.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                                            No software licenses found in the database.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    softwareLicenses.map((softwareLicense) => (
-                                        <TableRow key={softwareLicense.id}>
-                                            <TableCell>{softwareLicense.name}</TableCell>
-                                            <TableCell>{softwareLicense.publisher}</TableCell>
-                                            <TableCell>{softwareLicense.allocations?.length || 0} / {softwareLicense.totalSeats}</TableCell>
-                                            <TableCell>${softwareLicense.costPerSeat.toFixed(2)}</TableCell>
-                                            <TableCell>
-                                                {new Date(softwareLicense.renewalDate).toLocaleDateString()}
-                                                {isExpiringSoon(softwareLicense.renewalDate) && (
-                                                    <WarningIcon color="warning" sx={{ ml: 1, verticalAlign: 'middle' }} titleAccess="Expiring within 30 days!" />
-                                                )}
+                            ) : (
+                                paginatedLicenses.map((license) => {
+                                    const usedSeats = license.allocations?.length || 0;
+                                    const utilization = getSeatUtilization(license);
+
+                                    return (
+                                        <TableRow key={license.id} hover>
+                                            <TableCell sx={{ fontWeight: 500 }}>{license.name}</TableCell>
+                                            <TableCell>{license.publisher}</TableCell>
+                                            <TableCell sx={{ minWidth: 120 }}>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {usedSeats} / {license.totalSeats}
+                                                    </Typography>
+                                                </Box>
+                                                <LinearProgress
+                                                    variant="determinate"
+                                                    value={Math.min(utilization, 100)}
+                                                    color={getSeatColor(utilization)}
+                                                    sx={{ height: 6, borderRadius: 3 }}
+                                                />
                                             </TableCell>
+                                            <TableCell>${license.costPerSeat.toFixed(2)}</TableCell>
+                                            <TableCell>{getRenewalChip(license.renewalDate)}</TableCell>
                                             <TableCell align="center">
                                                 <Chip
-                                                    label={softwareLicense.isActive ? "Active" : "Inactive"}
-                                                    color={softwareLicense.isActive ? "success" : "error"}
+                                                    label={license.isActive ? 'Active' : 'Inactive'}
+                                                    color={license.isActive ? 'success' : 'error'}
                                                     size="small"
                                                     variant="outlined"
                                                 />
                                             </TableCell>
                                             <TableCell align="right">
-                                                <Tooltip title={!canModify ? "Requires Admin or Manager role" : "Assign Seat"}>
+                                                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : 'Assign Seat'}>
                                                     <span>
-                                                        <IconButton
-                                                            color="success"
-                                                            size="small"
-                                                            disabled={!canModify}
-                                                            onClick={() => {
-                                                                setSelectedLicenseId(softwareLicense.id!);
-                                                                setIsAssignModelOpen(true);
-                                                            }}
-                                                        >
+                                                        <IconButton color="success" size="small" disabled={!canModify} onClick={() => handleOpenAssign(license)}>
                                                             <PersonAddIcon fontSize="small" />
                                                         </IconButton>
                                                     </span>
                                                 </Tooltip>
-
-                                                {/* 2. Edit Icon */}
-                                                <Tooltip title={!canModify ? "Requires Admin or Manager role" : "Edit"}>
+                                                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : 'Edit'}>
                                                     <span>
-                                                        <IconButton color="primary" size="small" disabled={!canModify} onClick={() => handleEditClick(softwareLicense)}>
+                                                        <IconButton color="primary" size="small" disabled={!canModify} onClick={() => handleOpenEdit(license)}>
                                                             <EditIcon fontSize="small" />
                                                         </IconButton>
                                                     </span>
                                                 </Tooltip>
-                                                {/* 3. Delete Icon (Triggers Soft Delete) */}
-                                                <Tooltip title={!canModify ? "Requires Admin or Manager role" : "Delete"}>
+                                                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : 'Delete'}>
                                                     <span>
-                                                        <IconButton color="error" size="small" disabled={!canModify} onClick={() => handleDelete(softwareLicense.id!)}>
+                                                        <IconButton color="error" size="small" disabled={!canModify} onClick={() => handleOpenDelete(license)}>
                                                             <DeleteIcon fontSize="small" />
                                                         </IconButton>
                                                     </span>
                                                 </Tooltip>
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )
-                                }
-                            </TableBody>
-
-                        </Table>
-                    </TableContainer>
-                </Grid>
-            </Grid>
-
-            {/* ASSIGN SEAT MODAL */}
-            {(() => {
-                const selectedLicense = softwareLicenses.find(sl => sl.id === selectedLicenseId);
-
-                return (
-                    <Dialog open={isAssignModalOpen} onClose={() => setIsAssignModelOpen(false)} maxWidth="sm" fullWidth>
-                        <DialogTitle>Assign Software Seat</DialogTitle>
-                        <DialogContent>
-
-                            {/* Show Current Users */}
-                            {selectedLicense?.allocations && selectedLicense.allocations.length > 0 && (
-                                <Box sx={{ mb: 3, mt: 1 }}>
-                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                        Currently Assigned To ({selectedLicense.allocations.length} / {selectedLicense.totalSeats} seats):
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                        {selectedLicense.allocations.map((allocation: any) => {
-                                            const assignedUser = users.find(u => u.id === allocation.userId);
-                                            return (
-                                                <Chip
-                                                    key={allocation.id || allocation.userId}
-                                                    label={assignedUser ? assignedUser.username : `User ID: ${allocation.userId}`}
-                                                    size="small"
-                                                    color="info"
-                                                    variant="outlined"
-                                                    onDelete={canModify ? () => handleRemoveAllocation(selectedLicenseId!, allocation.userId) : undefined}
-                                                />
-                                            );
-                                        })}
-                                    </Box>
-                                </Box>
+                                    );
+                                })
                             )}
+                        </TableBody>
+                    </Table>
 
-                            {/* Dropdown Box */}
-                            <Box sx={{ mt: 2 }}>
-                                <FormControl fullWidth size="small">
-                                    <InputLabel>Select User</InputLabel>
-                                    <Select
-                                        value={selectedUserId}
-                                        label="Select User"
-                                        onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                                    >
-                                        {users.map((user) => {
-                                            const isAlreadyAssigned = selectedLicense?.allocations?.some((a: any) => a.userId === user.id);
-                                            return (
-                                                <MenuItem key={user.id} value={user.id} disabled={isAlreadyAssigned}>
-                                                    {user.username} ({user.department}) {isAlreadyAssigned ? "- Already Assigned" : ""}
-                                                </MenuItem>
-                                            );
-                                        })}
-                                    </Select>
-                                </FormControl>
+                    {totalPages > 1 && (
+                        <>
+                            <Divider />
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+                                <Pagination
+                                    count={totalPages}
+                                    page={page}
+                                    onChange={(_, val) => setPage(val)}
+                                    color="primary"
+                                    siblingCount={1}
+                                />
                             </Box>
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={() => setIsAssignModelOpen(false)} color="inherit">Cancel</Button>
-                            <Tooltip title={!canModify ? "Requires Admin or Manager role" : ""}>
-                                <span>
-                                    <Button onClick={handleAssignSeat} variant="contained" color="success" disabled={!canModify}>
-                                        Confirm Assignment
-                                    </Button>
-                                </span>
-                            </Tooltip>
-                        </DialogActions>
-                    </Dialog>
-                );
-            })()}
+                        </>
+                    )}
+                </TableContainer>
+            )}
 
+            {/* Mobile pagination */}
+            {isMobile && totalPages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <Pagination
+                        count={totalPages}
+                        page={page}
+                        onChange={(_, val) => setPage(val)}
+                        color="primary"
+                        size="small"
+                        siblingCount={0}
+                    />
+                </Box>
+            )}
+
+            {/* ── Dialogs ── */}
+            <LicenseFormDialog
+                open={formOpen}
+                onClose={() => setFormOpen(false)}
+                editingLicense={editingLicense}
+                onSaved={handleFormSaved}
+                canModify={canModify}
+            />
+
+            <DeleteConfirmDialog
+                open={deleteDialogOpen}
+                license={licenseToDelete}
+                onClose={() => { setDeleteDialogOpen(false); setLicenseToDelete(null); }}
+                onConfirm={handleConfirmDelete}
+                deleting={deleting}
+            />
+
+            <AssignSeatDialog
+                open={assignDialogOpen}
+                license={selectedLicense}
+                users={users}
+                canModify={canModify}
+                onClose={() => { setAssignDialogOpen(false); setSelectedLicense(null); }}
+                onAssign={handleAssignSeat}
+                onRemove={handleRemoveAllocation}
+            />
+
+            {/* ── Toast ── */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    severity={snackbar.severity}
+                    onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Container>
-    )
+    );
 }

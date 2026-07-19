@@ -27,6 +27,7 @@ public class DashboardService : IDashboardService
         var expiringLicenseDtos = expiringLicenses.Select(sl => new ExpiringLicenseDto
         {
             Name = sl.Name,
+            Publisher = sl.Publisher,
             RenewalDate = sl.RenewalDate,
             DaysRemaining = (sl.RenewalDate - DateTime.UtcNow).Days
         }).ToList();
