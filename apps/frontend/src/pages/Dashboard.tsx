@@ -5,7 +5,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableRow, TableContainer,
     useMediaQuery, useTheme, Container, Stack, Tooltip
 } from '@mui/material';
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Label } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import LaptopMacIcon from '@mui/icons-material/LaptopMac';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
@@ -366,7 +366,21 @@ export default function Dashboard() {
                         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, textAlign: 'center' }}>
                             Asset Allocation
                         </Typography>
-                        <Box sx={{ flexGrow: 1 }}>
+                        <Box sx={{ flexGrow: 1, position: 'relative' }}>
+                            {/* Center label as HTML overlay */}
+                            <Box sx={{
+                                position: 'absolute', top: 0, left: 0, right: 0, bottom: 36,
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                pointerEvents: 'none', zIndex: 1
+                            }}>
+                                <Typography variant="h5" sx={{ fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
+                                    {summary.assignedAssets}/{summary.totalAssets}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#64748b' }}>
+                                    assigned
+                                </Typography>
+                            </Box>
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
@@ -379,22 +393,6 @@ export default function Dashboard() {
                                         {assetData.map((_, index) => (
                                             <Cell key={`asset-${index}`} fill={COLORS[index]} />
                                         ))}
-                                        <Label
-                                            content={({ viewBox }) => {
-                                                const { cx, cy } = viewBox as any;
-                                                return (
-                                                    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
-                                                        <tspan x={cx} y={cy - 10} fontSize="22" fontWeight="700" fill="#1e293b">
-                                                            {summary.assignedAssets}/{summary.totalAssets}
-                                                        </tspan>
-                                                        <tspan x={cx} y={cy + 14} fontSize="12" fill="#64748b">
-                                                            assigned
-                                                        </tspan>
-                                                    </text>
-                                                );
-                                            }}
-                                            position="center"
-                                        />
                                     </Pie>
                                     <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                                     <Legend verticalAlign="bottom" height={36} />
@@ -410,7 +408,21 @@ export default function Dashboard() {
                         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, textAlign: 'center' }}>
                             License Seat Allocation
                         </Typography>
-                        <Box sx={{ flexGrow: 1 }}>
+                        <Box sx={{ flexGrow: 1, position: 'relative' }}>
+                            {/* Center label as HTML overlay */}
+                            <Box sx={{
+                                position: 'absolute', top: 0, left: 0, right: 0, bottom: 36,
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                pointerEvents: 'none', zIndex: 1
+                            }}>
+                                <Typography variant="h5" sx={{ fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
+                                    {summary.totalSeatsUsed}/{summary.totalSeatsOwned}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#64748b' }}>
+                                    seats used
+                                </Typography>
+                            </Box>
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
@@ -423,22 +435,6 @@ export default function Dashboard() {
                                         {licenseData.map((_, index) => (
                                             <Cell key={`license-${index}`} fill={COLORS[index]} />
                                         ))}
-                                        <Label
-                                            content={({ viewBox }) => {
-                                                const { cx, cy } = viewBox as any;
-                                                return (
-                                                    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
-                                                        <tspan x={cx} y={cy - 10} fontSize="22" fontWeight="700" fill="#1e293b">
-                                                            {summary.totalSeatsUsed}/{summary.totalSeatsOwned}
-                                                        </tspan>
-                                                        <tspan x={cx} y={cy + 14} fontSize="12" fill="#64748b">
-                                                            seats used
-                                                        </tspan>
-                                                    </text>
-                                                );
-                                            }}
-                                            position="center"
-                                        />
                                     </Pie>
                                     <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                                     <Legend verticalAlign="bottom" height={36} />
