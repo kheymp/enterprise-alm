@@ -59,6 +59,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 // Background Jobs
 builder.Services.AddHostedService<LicenseExpirationJob>();
+builder.Services.AddHostedService<DemoResetJob>();
 
 builder.Services.AddControllers();
 
