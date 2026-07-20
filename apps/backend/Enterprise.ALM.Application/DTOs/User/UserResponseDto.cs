@@ -9,4 +9,5 @@ public class UserResponseDto
     public bool IsActive { get; set; }
     public int RoleId { get; set; }
     public string? RoleName { get; set; }
+    public string? TemporaryPassword { get; set; }
 }

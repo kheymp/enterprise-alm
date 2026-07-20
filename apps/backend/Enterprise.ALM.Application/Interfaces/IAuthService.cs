@@ -4,5 +4,5 @@ namespace Enterprise.ALM.Application.Interfaces;
 
 public interface IAuthService {
     Task<AuthResponseDto?> LoginAsync(LoginRequestDto dto);
-    Task<bool> RegisterAsync(RegisterRequestDto dto);
+    Task<AuthResponseDto?> ChangePasswordAsync(string email, ChangePasswordDto dto);
 }

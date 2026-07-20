@@ -10,6 +10,7 @@ namespace Enterprise.ALM.Domain.Entities
 
         public string Department { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
+        public bool MustChangePassword { get; set; } = false;
 
         public int RoleId { get; set; }
         public Role? Role { get; set; } = null!;

@@ -1,30 +1,37 @@
 import { Navigate, BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from './components/layout/MainLayout';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import { jwtDecode } from "jwt-decode";
-
 import UserManagement from './pages/UserManagement';
 import Assets from './pages/Assets';
 import Licenses from './pages/Licenses';
 import Dashboard from './pages/Dashboard';
 import AuditLog from './pages/AuditLog';
+import ChangePassword from './pages/ChangePassword';
 
 // 1. The Bouncer (Protected Route)
 const ProtectedRoute = ({
   children,
   allowedRoles,
+  allowPasswordChange,
 }: {
   children: React.ReactNode;
   allowedRoles?: string[];
+  allowPasswordChange?: boolean;
 }) => {
   const currentToken = localStorage.getItem("token");
   if (!currentToken) {
     return <Navigate to="/login" replace />;
   }
+  const decoded: any = jwtDecode(currentToken);
+
+  // Force the temp-password user onto the change screen before anything else.
+  if (decoded.mustChangePassword === "true" && !allowPasswordChange) {
+    return <Navigate to="/change-password" replace />;
+  }
+
   if (allowedRoles) {
-    const decoded: any = jwtDecode(currentToken);
-    const userRole: string = decoded.role;   // "Admin", "Manager", etc.
+    const userRole: string = decoded.role;
     if (!allowedRoles.includes(userRole)) {
       return <Navigate to="/" replace />;
     }
@@ -37,7 +44,6 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
 
         <Route path="/" element={
           <ProtectedRoute>
@@ -78,8 +84,13 @@ export default function App() {
             </MainLayout>
           </ProtectedRoute>
         } />
-      </Routes>
 
+        <Route path="/change-password" element={
+          <ProtectedRoute allowPasswordChange>
+            <ChangePassword />
+          </ProtectedRoute>
+        } />
+      </Routes>
 
     </BrowserRouter>
   )

@@ -77,6 +77,7 @@ function UserFormDialog({ open, onClose, editingUser, onSaved }: {
     const [roleId, setRoleId] = useState(3);
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+    const [tempPassword, setTempPassword] = useState<string | null>(null);
 
     // Populate fields when dialog opens or editingUser changes
     useEffect(() => {
@@ -95,6 +96,7 @@ function UserFormDialog({ open, onClose, editingUser, onSaved }: {
                 setRoleId(3);
             }
             setFormError(null);
+            setTempPassword(null);
         }
     }, [open, editingUser]);
 
@@ -115,12 +117,13 @@ function UserFormDialog({ open, onClose, editingUser, onSaved }: {
 
             if (editingUser) {
                 await api.put(`/api/users/${editingUser.id}`, payload);
+                onSaved(`"${username}" updated successfully.`);
+                onClose();
             } else {
-                await api.post('/api/users', payload);
+                const created = await api.post<{ temporaryPassword?: string }>('/api/users', payload);
+                onSaved(`"${username}" created successfully.`);
+                setTempPassword(created.temporaryPassword ?? null); // keep dialog open to reveal it
             }
-
-            onSaved(editingUser ? `"${username}" updated successfully.` : `"${username}" registered successfully.`);
-            onClose();
         } catch (err: any) {
             setFormError(err.message);
         } finally {
@@ -150,95 +153,118 @@ function UserFormDialog({ open, onClose, editingUser, onSaved }: {
 
             <Box component="form" onSubmit={handleSubmit}>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 3 }}>
-                    {formError && (
-                        <Alert severity="error" onClose={() => setFormError(null)}>
-                            {formError}
-                        </Alert>
-                    )}
-
-                    <TextField
-                        label="Username"
-                        variant="outlined"
-                        fullWidth
-                        size="small"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                        autoFocus
-                    />
-                    <TextField
-                        label="Email Address"
-                        type="email"
-                        variant="outlined"
-                        fullWidth
-                        size="small"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                    <TextField
-                        label="Department"
-                        variant="outlined"
-                        fullWidth
-                        size="small"
-                        value={department}
-                        onChange={(e) => setDepartment(e.target.value)}
-                        placeholder="e.g., Engineering, HR, Legal"
-                        required
-                    />
-
-                    {/* Refactored Dropdown Component replacing raw number text field */}
-                    <FormControl fullWidth size="small">
-                        <InputLabel id="role-select-label">Security Role Access</InputLabel>
-                        <Select
-                            labelId="role-select-label"
-                            value={roleId}
-                            label="Security Role Access"
-                            onChange={(e) => setRoleId(Number(e.target.value))}
-                        >
-                            {SYSTEM_ROLES.map((role) => (
-                                <MenuItem key={role.id} value={role.id}>
-                                    {role.name}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                        {/* Render the current role description contextually as helper text! */}
-                        <FormHelperText>
-                            {SYSTEM_ROLES.find(r => r.id === roleId)?.description}
-                        </FormHelperText>
-                    </FormControl>
-
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={isActive}
-                                onChange={(e) => setIsActive(e.target.checked)}
-                                color="primary"
+                    {tempPassword ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Alert severity="success">
+                                User created. Share this temporary password — it won't be shown again.
+                                They'll be required to change it at first login.
+                            </Alert>
+                            <TextField
+                                label="Temporary Password"
+                                value={tempPassword}
+                                fullWidth
+                                slotProps={{ input: { readOnly: true } }}
                             />
-                        }
-                        label={isActive ? "Account Active" : "Account Suspended"}
-                    />
+                            <Button variant="outlined" onClick={() => navigator.clipboard.writeText(tempPassword)}>
+                                Copy Password
+                            </Button>
+                            <Button variant="contained" onClick={onClose}>Done</Button>
+                        </Box>
+                    ) : (
+                        <>
+                            {formError && (
+                                <Alert severity="error" onClose={() => setFormError(null)}>
+                                    {formError}
+                                </Alert>
+                            )}
+
+                            <TextField
+                                label="Username"
+                                variant="outlined"
+                                fullWidth
+                                size="small"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                required
+                                autoFocus
+                            />
+                            <TextField
+                                label="Email Address"
+                                type="email"
+                                variant="outlined"
+                                fullWidth
+                                size="small"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                            <TextField
+                                label="Department"
+                                variant="outlined"
+                                fullWidth
+                                size="small"
+                                value={department}
+                                onChange={(e) => setDepartment(e.target.value)}
+                                placeholder="e.g., Engineering, HR, Legal"
+                                required
+                            />
+
+                            {/* Refactored Dropdown Component replacing raw number text field */}
+                            <FormControl fullWidth size="small">
+                                <InputLabel id="role-select-label">Security Role Access</InputLabel>
+                                <Select
+                                    labelId="role-select-label"
+                                    value={roleId}
+                                    label="Security Role Access"
+                                    onChange={(e) => setRoleId(Number(e.target.value))}
+                                >
+                                    {SYSTEM_ROLES.map((role) => (
+                                        <MenuItem key={role.id} value={role.id}>
+                                            {role.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {/* Render the current role description contextually as helper text! */}
+                                <FormHelperText>
+                                    {SYSTEM_ROLES.find(r => r.id === roleId)?.description}
+                                </FormHelperText>
+                            </FormControl>
+
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={isActive}
+                                        onChange={(e) => setIsActive(e.target.checked)}
+                                        color="primary"
+                                    />
+                                }
+                                label={isActive ? "Account Active" : "Account Suspended"}
+                            />
+                        </>
+                    )}
                 </DialogContent>
 
-                <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-                    <Button
-                        variant="outlined"
-                        color="inherit"
-                        onClick={onClose}
-                        startIcon={<ClearIcon />}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        color={editingUser ? "success" : "primary"}
-                        startIcon={saving ? <CircularProgress size={16} color="inherit" /> : (editingUser ? <SaveIcon /> : <PersonAddIcon />)}
-                        disabled={saving}
-                    >
-                        {editingUser ? 'Save Changes' : 'Register'}
-                    </Button>
-                </DialogActions>
+                {!tempPassword && (
+                    <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+                        <Button
+                            variant="outlined"
+                            color="inherit"
+                            onClick={onClose}
+                            startIcon={<ClearIcon />}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            color={editingUser ? "success" : "primary"}
+                            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : (editingUser ? <SaveIcon /> : <PersonAddIcon />)}
+                            disabled={saving}
+                        >
+                            {editingUser ? 'Save Changes' : 'Register'}
+                        </Button>
+                    </DialogActions>
+                )}
             </Box>
         </Dialog>
     );

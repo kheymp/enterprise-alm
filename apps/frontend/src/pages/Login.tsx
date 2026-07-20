@@ -27,13 +27,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const data = await api.post<{ token: string }>('/api/auth/login', {
-        email: emailArg,
-        password: passwordArg,
-      });
+      const data = await api.post<{ token: string; mustChangePassword: boolean }>(
+        '/api/auth/login', { email: emailArg, password: passwordArg });
       localStorage.setItem('token', data.token);
-      // Hard redirect to the dashboard so the route guard re-reads the new token.
-      window.location.href = "/";
+      window.location.href = data.mustChangePassword ? '/change-password' : '/';
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -116,15 +113,6 @@ export default function Login() {
             >
               Explore the live demo (full admin)
             </Button>
-
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Typography variant="body2">
-                Don't have an account?{' '}
-                <Link component="button" variant="body2" onClick={() => navigate('/register')} type="button">
-                  Register here
-                </Link>
-              </Typography>
-            </Box>
           </Box>
         </CardContent>
       </Card>
