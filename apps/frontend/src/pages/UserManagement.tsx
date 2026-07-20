@@ -20,6 +20,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import GroupIcon from '@mui/icons-material/Group';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { api } from '../lib/api';
 
 /* ── Types ── */
 interface User {
@@ -43,7 +44,6 @@ const SYSTEM_ROLES: RoleDefinition[] = [
     { id: 3, name: 'Viewer', description: 'Read-only access to monitoring dashboards.' }
 ];
 
-const API_BASE = 'http://localhost:5132/api/users';
 const PAGE_SIZE = 8;
 
 /* ── Helpers ── */
@@ -110,22 +110,14 @@ function UserFormDialog({ open, onClose, editingUser, onSaved }: {
             isActive,
             roleId
         };
-        const url = editingUser ? `${API_BASE}/${editingUser.id}` : API_BASE;
-        const method = editingUser ? 'PUT' : 'POST';
-        const currentToken = localStorage.getItem("token");
-
         try {
             setSaving(true);
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    "Authorization": `Bearer ${currentToken}`
-                },
-                body: JSON.stringify(payload)
-            });
 
-            if (!res.ok) throw new Error('Failed to save user data.');
+            if (editingUser) {
+                await api.put(`/api/users/${editingUser.id}`, payload);
+            } else {
+                await api.post('/api/users', payload);
+            }
 
             onSaved(editingUser ? `"${username}" updated successfully.` : `"${username}" registered successfully.`);
             onClose();
@@ -484,26 +476,13 @@ export default function UserManagement() {
     });
 
     useEffect(() => {
-        // Only attempt to fetch if we actually have a token to send
-        const currentToken = localStorage.getItem("token");
-        if (currentToken) {
-            fetchUsers();
-        } else {
-            setLoading(false);
-        }
+        fetchUsers();
     }, []);
 
     const fetchUsers = async () => {
-        const currentToken = localStorage.getItem("token");
         try {
             setLoading(true);
-            const res = await fetch(API_BASE, {
-                headers: {
-                    "Authorization": `Bearer ${currentToken}`
-                }
-            });
-            if (!res.ok) throw new Error('Failed to fetch system users');
-            const data = await res.json();
+            const data = await api.get<User[]>('/api/users');
             setUsers(data);
             setError(null);
         } catch (err: any) {
@@ -557,16 +536,9 @@ export default function UserManagement() {
 
     const handleConfirmDelete = async () => {
         if (!userToDelete?.id) return;
-        const currentToken = localStorage.getItem("token");
         try {
             setDeleting(true);
-            const res = await fetch(`${API_BASE}/${userToDelete.id}`, {
-                method: 'DELETE',
-                headers: {
-                    "Authorization": `Bearer ${currentToken}`
-                }
-            });
-            if (!res.ok) throw new Error('Failed to delete user.');
+            await api.del(`/api/users/${userToDelete.id}`);
             setSnackbar({ open: true, message: `"${userToDelete.username}" deleted successfully.`, severity: 'success' });
             setDeleteDialogOpen(false);
             setUserToDelete(null);

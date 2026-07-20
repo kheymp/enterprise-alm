@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Container, Card, CardContent, TextField, Button, Typography, Box, Alert, Link } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { api } from "../lib/api";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -25,16 +26,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5132/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Registration failed. Please try again.");
-      }
+      await api.post<string>('/api/auth/register', { email, password });
 
       setSuccess(true);
       

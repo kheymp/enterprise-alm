@@ -23,6 +23,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import KeyIcon from '@mui/icons-material/Key';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
+import { api } from '../lib/api';
 
 /* ── Types ── */
 interface License {
@@ -36,8 +37,6 @@ interface License {
     allocations: any[];
 }
 
-const API_BASE = 'http://localhost:5132/api/licenses';
-const USERS_API = 'http://localhost:5132/api/users';
 const PAGE_SIZE = 8;
 
 /* ── Helpers ── */
@@ -132,22 +131,14 @@ function LicenseFormDialog({ open, onClose, editingLicense, onSaved, canModify }
             isActive
         };
 
-        const token = localStorage.getItem('token');
-        const url = editingLicense ? `${API_BASE}/${editingLicense.id}` : API_BASE;
-        const method = editingLicense ? 'PUT' : 'POST';
-
         try {
             setSaving(true);
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
 
-            if (!res.ok) throw new Error('Failed to save software license data.');
+            if (editingLicense) {
+                await api.put(`/api/licenses/${editingLicense.id}`, payload);
+            } else {
+                await api.post('/api/licenses', payload);
+            }
 
             onSaved(editingLicense ? `"${name}" updated successfully.` : `"${name}" registered successfully.`);
             onClose();
@@ -678,14 +669,9 @@ export default function Licenses() {
 
     /* ── Data fetching ── */
     const fetchSoftwareLicenses = async () => {
-        const token = localStorage.getItem('token');
         try {
             setLoading(true);
-            const res = await fetch(`${API_BASE}?showInactive=${showInactive}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Failed to fetch software licenses.');
-            const data = await res.json();
+            const data = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
             setSoftwareLicenses(data);
             setError(null);
         } catch (err: any) {
@@ -696,15 +682,9 @@ export default function Licenses() {
     };
 
     const fetchUsers = async () => {
-        const token = localStorage.getItem('token');
         try {
-            const res = await fetch(USERS_API, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setUsers(data);
-            }
+            const data = await api.get<any[]>('/api/users');
+            setUsers(data);
         } catch {
             // Users fetch failure is non-critical
         }
@@ -756,14 +736,9 @@ export default function Licenses() {
 
     const handleConfirmDelete = async () => {
         if (!licenseToDelete?.id) return;
-        const token = localStorage.getItem('token');
         try {
             setDeleting(true);
-            const res = await fetch(`${API_BASE}/${licenseToDelete.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Failed to delete license. (Are you an Admin?)');
+            await api.del(`/api/licenses/${licenseToDelete.id}`);
             setSnackbar({ open: true, message: `"${licenseToDelete.name}" deleted successfully.`, severity: 'success' });
             setDeleteDialogOpen(false);
             setLicenseToDelete(null);
@@ -781,23 +756,12 @@ export default function Licenses() {
     };
 
     const handleAssignSeat = async (licenseId: number, userId: number) => {
-        const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`${API_BASE}/${licenseId}/allocate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ userId })
-            });
-            if (!res.ok) throw new Error('Failed to assign seat. Are there any seats left?');
+            await api.post(`/api/licenses/${licenseId}/allocate`, { userId });
             setSnackbar({ open: true, message: 'Seat assigned successfully.', severity: 'success' });
             await fetchSoftwareLicenses();
             // Refresh selected license in the assign dialog
-            const updated = (await fetch(`${API_BASE}?showInactive=${showInactive}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            }).then(r => r.json())) as License[];
+            const updated = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
             const refreshed = updated.find(l => l.id === licenseId);
             if (refreshed) setSelectedLicense(refreshed);
         } catch (err: any) {
@@ -806,19 +770,12 @@ export default function Licenses() {
     };
 
     const handleRemoveAllocation = async (licenseId: number, userId: number) => {
-        const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`${API_BASE}/${licenseId}/allocate/${userId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Failed to remove allocation.');
+            await api.del(`/api/licenses/${licenseId}/allocate/${userId}`);
             setSnackbar({ open: true, message: 'Seat removed successfully.', severity: 'success' });
             await fetchSoftwareLicenses();
             // Refresh selected license in the assign dialog
-            const updated = (await fetch(`${API_BASE}?showInactive=${showInactive}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            }).then(r => r.json())) as License[];
+            const updated = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
             const refreshed = updated.find(l => l.id === licenseId);
             if (refreshed) setSelectedLicense(refreshed);
         } catch (err: any) {

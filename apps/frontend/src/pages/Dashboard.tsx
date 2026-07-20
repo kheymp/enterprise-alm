@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
-    Box, Grid, Card, CardContent, Typography, CircularProgress, Alert,
-    Skeleton, Chip, Divider, Avatar, LinearProgress, Button, Paper,
+    Box, Grid, Card, CardContent, Typography, Alert,
+    Skeleton, Chip, Divider, Avatar, LinearProgress, Button,
     Table, TableBody, TableCell, TableHead, TableRow, TableContainer,
-    useMediaQuery, useTheme, Container, Stack, Tooltip
+    useMediaQuery, useTheme, Container, Stack
 } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import LaptopMacIcon from '@mui/icons-material/LaptopMac';
@@ -17,6 +17,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { api } from '../lib/api';
 
 /* ── Types ── */
 interface DashboardSummary {
@@ -176,28 +177,17 @@ export default function Dashboard() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const token = localStorage.getItem('token');
             try {
                 setLoading(true);
 
                 // Fetch dashboard summary and recent audit logs in parallel
-                const [summaryRes, auditRes] = await Promise.all([
-                    fetch('http://localhost:5132/api/dashboard/summary', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch('http://localhost:5132/api/auditlogs?page=1&pageSize=8', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }).catch(() => null) // Non-critical
+                const [summaryData, auditData] = await Promise.all([
+                    api.get<DashboardSummary>('/api/dashboard/summary'),
+                    api.get<AuditLogEntry[]>('/api/auditlogs?page=1&pageSize=8').catch(() => null) // Non-critical
                 ]);
 
-                if (!summaryRes.ok) throw new Error('Failed to fetch dashboard data.');
-                const summaryData = await summaryRes.json();
                 setSummary(summaryData);
-
-                if (auditRes && auditRes.ok) {
-                    const auditData = await auditRes.json();
-                    setRecentActivity(auditData);
-                }
+                if (auditData) setRecentActivity(auditData);
 
                 setError(null);
             } catch (err: any) {

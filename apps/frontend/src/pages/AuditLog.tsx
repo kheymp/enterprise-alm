@@ -9,8 +9,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-
-const API_BASE = 'http://localhost:5132/api/auditlogs';
+import { api } from '../lib/api';
 
 interface AuditLogEntry {
     id: number;
@@ -235,13 +234,7 @@ export default function AuditLog() {
             params.set('page', String(currentPage));
             params.set('pageSize', String(pageSize));
 
-            const res = await fetch(`${API_BASE}?${params}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (!res.ok) throw new Error('Failed to fetch audit logs.');
-
-            const data: AuditLogEntry[] = await res.json();
+            const data = await api.get<AuditLogEntry[]>(`/api/auditlogs?${params}`);
             setLogs(data);
             setHasMore(data.length === pageSize);
             setError(null);
