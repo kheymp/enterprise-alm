@@ -14,3 +14,8 @@ appsettings.Development.json
 .vs/
 .idea/
 .DS_Store
+
+# Local env files
+.env
+.env.*
+!.env.example

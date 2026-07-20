@@ -23,9 +23,8 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import BuildIcon from '@mui/icons-material/Build';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
+import { api } from '../lib/api';
 
-const API_BASE = 'http://localhost:5132/api/assets';
-const USERS_API = 'http://localhost:5132/api/users';
 const PAGE_SIZE = 8;
 
 /* ── Helpers ── */
@@ -116,22 +115,14 @@ function AssetFormDialog({ open, onClose, editingAsset, users, onSaved, canModif
             assignedUserId: assignedUserId === '' ? null : assignedUserId
         };
 
-        const token = localStorage.getItem('token');
-        const url = editingAsset ? `${API_BASE}/${editingAsset.id}` : API_BASE;
-        const method = editingAsset ? 'PUT' : 'POST';
-
         try {
             setSaving(true);
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
 
-            if (!res.ok) throw new Error('Failed to save asset data.');
+            if (editingAsset) {
+                await api.put(`/api/assets/${editingAsset.id}`, payload);
+            } else {
+                await api.post('/api/assets', payload);
+            }
 
             onSaved(editingAsset ? `"${name}" updated successfully.` : `"${name}" registered successfully.`);
             onClose();
@@ -338,23 +329,13 @@ function AssetDetailsDialog({ open, assetDetails, canModify, onClose, onMaintena
         e.preventDefault();
         if (!maintenanceDescription) return;
 
-        const token = localStorage.getItem('token');
         try {
             setSaving(true);
-            const res = await fetch(`${API_BASE}/${asset.id}/maintenance`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    datePerformed: maintenanceDate,
-                    description: maintenanceDescription,
-                    cost: Number(maintenanceCost)
-                })
+            await api.post(`/api/assets/${asset.id}/maintenance`, {
+                datePerformed: maintenanceDate,
+                description: maintenanceDescription,
+                cost: Number(maintenanceCost)
             });
-
-            if (!res.ok) throw new Error('Failed to add maintenance record.');
 
             setMaintenanceDescription('');
             setMaintenanceCost('');
@@ -760,14 +741,9 @@ export default function Assets() {
 
     /* ── Data fetching ── */
     const fetchAssets = async () => {
-        const token = localStorage.getItem('token');
         try {
             setLoading(true);
-            const res = await fetch(API_BASE, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Failed to fetch assets.');
-            const data = await res.json();
+            const data = await api.get<any[]>('/api/assets');
             setAssets(data);
             setError(null);
         } catch (err: any) {
@@ -778,28 +754,17 @@ export default function Assets() {
     };
 
     const fetchUsers = async () => {
-        const token = localStorage.getItem('token');
         try {
-            const res = await fetch(USERS_API, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setUsers(data);
-            }
+            const data = await api.get<any[]>('/api/users');
+            setUsers(data);
         } catch {
             // Non-critical
         }
     };
 
     const fetchAssetDetails = async (id: number) => {
-        const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`${API_BASE}/${id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Failed to fetch asset details.');
-            const data = await res.json();
+            const data = await api.get<any>(`/api/assets/${id}`);
             setAssetDetails(data);
             setDetailsOpen(true);
         } catch (err: any) {
@@ -854,14 +819,9 @@ export default function Assets() {
 
     const handleConfirmDelete = async () => {
         if (!assetToDelete?.id) return;
-        const token = localStorage.getItem('token');
         try {
             setDeleting(true);
-            const res = await fetch(`${API_BASE}/${assetToDelete.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Failed to delete asset. (Are you an Admin?)');
+            await api.del(`/api/assets/${assetToDelete.id}`);
             setSnackbar({ open: true, message: `"${assetToDelete.name}" deleted successfully.`, severity: 'success' });
             setDeleteDialogOpen(false);
             setAssetToDelete(null);

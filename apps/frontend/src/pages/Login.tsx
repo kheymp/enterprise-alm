@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Container, Card, CardContent, TextField, Button, Typography, Box, Alert, Link } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
+import { api } from "../lib/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -21,25 +22,15 @@ export default function Login() {
   }, [location]);
 
   const handleLogin = async (e: React.FormEvent) => {
+    localStorage.removeItem('token')
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5132/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Invalid email or password.");
-      }
-
-      const data = await response.json();
-      
-      // Save the VIP Pass to the browser's local storage
-      localStorage.setItem("token", data.token);
+      const data = await api.post<{ token: string }>('/api/auth/login', { email, password });
+      localStorage.setItem('token', data.token);
+      window.location.href = '/';
       
       // Force a hard redirect to the root dashboard so the Bouncer can let them in
       window.location.href = "/"; 
