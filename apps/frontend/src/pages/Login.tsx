@@ -21,25 +21,29 @@ export default function Login() {
     }
   }, [location]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    localStorage.removeItem('token')
-    e.preventDefault();
+  const loginWith = async (emailArg: string, passwordArg: string) => {
+    localStorage.removeItem('token');
     setError("");
     setLoading(true);
 
     try {
-      const data = await api.post<{ token: string }>('/api/auth/login', { email, password });
+      const data = await api.post<{ token: string }>('/api/auth/login', {
+        email: emailArg,
+        password: passwordArg,
+      });
       localStorage.setItem('token', data.token);
-      window.location.href = '/';
-      
-      // Force a hard redirect to the root dashboard so the Bouncer can let them in
-      window.location.href = "/"; 
-      
+      // Hard redirect to the dashboard so the route guard re-reads the new token.
+      window.location.href = "/";
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginWith(email, password);
   };
 
   return (
@@ -54,6 +58,10 @@ export default function Login() {
               Enter your credentials to access the Enterprise ALM platform.
             </Typography>
           </Box>
+
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Public demo — full-admin sandbox. Feel free to change anything; it resets every hour.
+          </Alert>
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -96,6 +104,17 @@ export default function Login() {
               sx={{ mt: 2 }}
             >
               {loading ? "Authenticating..." : "Login"}
+            </Button>
+
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="large"
+              fullWidth
+              disabled={loading}
+              onClick={() => loginWith("demo@enterprise-alm.app", "Demo!2026")}
+            >
+              Explore the live demo (full admin)
             </Button>
 
             <Box sx={{ mt: 2, textAlign: 'center' }}>
