@@ -25,6 +25,16 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByEmailAsync(dto.Email);
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return null;
+
+        return new AuthResponseDto
+        {
+            Token = GenerateToken(user),
+            MustChangePassword = user.MustChangePassword
+        };
+    }
+
+    private string GenerateToken(User user)
+    {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -33,7 +43,8 @@ public class AuthService : IAuthService
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role!.Name)
+                new Claim(ClaimTypes.Role, user.Role!.Name),
+                new Claim("mustChangePassword", user.MustChangePassword.ToString().ToLower())
             }),
             Expires = DateTime.UtcNow.AddMinutes(
                 double.Parse(_configuration["JwtSettings:ExpirationInMinutes"]!)),
@@ -44,23 +55,19 @@ public class AuthService : IAuthService
                 SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
-        return new AuthResponseDto { Token = tokenHandler.WriteToken(token) };
+        return tokenHandler.WriteToken(token);
     }
 
-    public async Task<bool> RegisterAsync(RegisterRequestDto dto)
+    public async Task<AuthResponseDto?> ChangePasswordAsync(string email, ChangePasswordDto dto)
     {
-        if (await _userRepository.EmailExistsAsync(dto.Email))
-            return false;
-        var newUser = new User
-        {
-            Email = dto.Email,
-            Username = dto.Email.Split('@')[0],
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            RoleId = 3,
-            IsActive = true
-        };
-        await _userRepository.AddAsync(newUser);
+        var user = await _userRepository.GetByEmailAsync(email);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+            return null;
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        user.MustChangePassword = false;
         await _userRepository.SaveChangesAsync();
-        return true;
+
+        return new AuthResponseDto { Token = GenerateToken(user), MustChangePassword = false };
     }
 }
