@@ -76,7 +76,7 @@ function DashboardSkeleton() {
             {/* KPI row */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {Array.from({ length: 5 }).map((_, i) => (
-                    <Grid size={{ xs: 12, sm: 6, md: 2.4 }} key={i}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }} key={i}>
                         <Card>
                             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
                                 <Skeleton variant="rounded" width={48} height={48} sx={{ borderRadius: 3, mr: 2 }} />
@@ -124,7 +124,7 @@ function KpiCard({ icon, iconBg, iconShadow, label, value, subtitle }: {
 }) {
     return (
         <Card sx={{ height: '100%' }}>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: { xs: 2, sm: 3 } }}>
                 <Box sx={{
                     p: 1.5, borderRadius: 3,
                     background: iconBg,
@@ -270,7 +270,7 @@ export default function Dashboard() {
 
             {/* ── KPI Cards Row ── */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
                     <KpiCard
                         icon={<LaptopMacIcon sx={{ color: '#fff' }} />}
                         iconBg="linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)"
@@ -284,7 +284,7 @@ export default function Dashboard() {
                         }
                     />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
                     <KpiCard
                         icon={<AttachMoneyIcon sx={{ color: '#fff' }} />}
                         iconBg="linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)"
@@ -300,7 +300,7 @@ export default function Dashboard() {
                         }
                     />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
                     <KpiCard
                         icon={<VpnKeyIcon sx={{ color: '#fff' }} />}
                         iconBg="linear-gradient(135deg, #c084fc 0%, #9333ea 100%)"
@@ -323,7 +323,7 @@ export default function Dashboard() {
                         }
                     />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
                     <KpiCard
                         icon={<AccountBalanceWalletIcon sx={{ color: '#fff' }} />}
                         iconBg="linear-gradient(135deg, #34d399 0%, #059669 100%)"
@@ -339,7 +339,7 @@ export default function Dashboard() {
                         }
                     />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
                     <KpiCard
                         icon={<EventSeatIcon sx={{ color: '#fff' }} />}
                         iconBg="linear-gradient(135deg, #fb923c 0%, #ea580c 100%)"

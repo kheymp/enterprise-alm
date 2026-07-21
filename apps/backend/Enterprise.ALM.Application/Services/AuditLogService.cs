@@ -30,7 +30,7 @@ public class AuditLogService : IAuditLogService
             NewValues = log.NewValues,
             ChangedColumns = log.ChangedColumns,
             PerformedBy = log.PerformedBy,
-            Timestamp = log.Timestamp
+            Timestamp = DateTime.SpecifyKind(log.Timestamp, DateTimeKind.Utc)
         }).ToList();
     }
 }

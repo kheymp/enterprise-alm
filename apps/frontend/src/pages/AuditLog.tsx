@@ -224,7 +224,6 @@ export default function AuditLog() {
     const ENTITY_OPTIONS = ['', 'Asset', 'SoftwareLicense', 'LicenseAllocation', 'User', 'MaintenanceRecord'];
 
     const fetchLogs = async (currentPage = 1, nameFilter = entityName, idFilter = entityId) => {
-        const token = localStorage.getItem('token');
         try {
             setLoading(true);
 

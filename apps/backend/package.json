@@ -1,0 +1,10 @@
+{
+  "name": "backend",
+  "private": true,
+  "scripts": {
+    "build": "dotnet build Enterprise.ALM.sln -c Release",
+    "dev": "dotnet watch --project Enterprise.ALM.Api",
+    "lint": "dotnet format Enterprise.ALM.sln --verify-no-changes",
+    "test": "dotnet test Enterprise.ALM.sln"
+  }
+}

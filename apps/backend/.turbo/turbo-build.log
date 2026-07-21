@@ -1,0 +1,15 @@
+$ dotnet build Enterprise.ALM.sln -c Release
+MSBuild version 17.8.3+195e7f5a3 for .NET
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Enterprise.ALM.Domain -> C:\Users\Kheymp\Desktop\enterprise-alm\apps\backend\Enterprise.ALM.Domain\bin\Release\net8.0\Enterprise.ALM.Domain.dll
+  Enterprise.ALM.Application -> C:\Users\Kheymp\Desktop\enterprise-alm\apps\backend\Enterprise.ALM.Application\bin\Release\net8.0\Enterprise.ALM.Application.dll
+  Enterprise.ALM.Tests -> C:\Users\Kheymp\Desktop\enterprise-alm\apps\backend\Enterprise.ALM.Tests\bin\Release\net8.0\Enterprise.ALM.Tests.dll
+  Enterprise.ALM.Infrastructure -> C:\Users\Kheymp\Desktop\enterprise-alm\apps\backend\Enterprise.ALM.Infrastructure\bin\Release\net8.0\Enterprise.ALM.Infrastructure.dll
+  Enterprise.ALM.Api -> C:\Users\Kheymp\Desktop\enterprise-alm\apps\backend\Enterprise.ALM.Api\bin\Release\net8.0\Enterprise.ALM.Api.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:10.93
