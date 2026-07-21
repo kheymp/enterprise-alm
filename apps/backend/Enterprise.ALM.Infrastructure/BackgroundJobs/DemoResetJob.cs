@@ -77,12 +77,14 @@ public class DemoResetJob : BackgroundService
         demoAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(DemoPassword);
 
         // 3) A couple of sample teammates so the User Management screen looks populated.
-        //    They can't be logged into; the random hash just makes login safely return "no".
+        //    They share the demo password so visitors can log in and feel the Manager (RoleId 2)
+        //    and Viewer (RoleId 3) roles, not just Admin.
+        
         db.Users.AddRange(
             new User { Email = "jane.manager@example.com", Username = "jane.manager", Department = "IT",
-                       RoleId = 2, IsActive = true, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()) },
+                       RoleId = 2, IsActive = true, PasswordHash = BCrypt.Net.BCrypt.HashPassword(DemoPassword) },
             new User { Email = "sam.viewer@example.com", Username = "sam.viewer", Department = "Finance",
-                       RoleId = 3, IsActive = true, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()) }
+                       RoleId = 3, IsActive = true, PasswordHash = BCrypt.Net.BCrypt.HashPassword(DemoPassword) }
         );
 
         await db.SaveChangesAsync(); // saves users; demoAdmin.Id is now filled in

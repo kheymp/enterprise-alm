@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Container, Card, CardContent, TextField, Button, Typography, Box, Alert, Link } from "@mui/material";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Container, Card, CardContent, TextField, Button, Typography, Box, Alert } from "@mui/material";
+import { useLocation } from "react-router-dom";
 import { api } from "../lib/api";
 
 export default function Login() {
@@ -11,7 +11,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (location.state?.message) {
@@ -103,16 +102,27 @@ export default function Login() {
               {loading ? "Authenticating..." : "Login"}
             </Button>
 
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="large"
-              fullWidth
-              disabled={loading}
-              onClick={() => loginWith("demo@enterprise-alm.app", "Demo!2026")}
-            >
-              Explore the live demo (full admin)
-            </Button>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+              Or jump straight in as one of these roles:
+            </Typography>
+
+            {[
+              { label: "Admin — full access", email: "demo@enterprise-alm.app" },
+              { label: "Manager — Jane", email: "jane.manager@example.com" },
+              { label: "Viewer — Sam", email: "sam.viewer@example.com" },
+            ].map((acct) => (
+              <Button
+                key={acct.email}
+                variant="outlined"
+                color="secondary"
+                size="large"
+                fullWidth
+                disabled={loading}
+                onClick={() => loginWith(acct.email, "Demo!2026")}
+              >
+                {acct.label}
+              </Button>
+            ))}
           </Box>
         </CardContent>
       </Card>
