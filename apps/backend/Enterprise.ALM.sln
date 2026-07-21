@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enterprise.ALM.Infrastructu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enterprise.ALM.Api", "Enterprise.ALM.Api\Enterprise.ALM.Api.csproj", "{B33233E8-55A3-4338-9AEA-212377330E02}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enterprise.ALM.Tests", "Enterprise.ALM.Tests\Enterprise.ALM.Tests.csproj", "{E3D45936-4CA6-41C2-818C-8ED507DD3189}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{B33233E8-55A3-4338-9AEA-212377330E02}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B33233E8-55A3-4338-9AEA-212377330E02}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B33233E8-55A3-4338-9AEA-212377330E02}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3D45936-4CA6-41C2-818C-8ED507DD3189}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3D45936-4CA6-41C2-818C-8ED507DD3189}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3D45936-4CA6-41C2-818C-8ED507DD3189}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3D45936-4CA6-41C2-818C-8ED507DD3189}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
