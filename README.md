@@ -1,3 +1,6 @@
+[![CI](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml/badge.svg)](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml)
+
+
 # Enterprise Asset & License Manager (ALM)
 
 A full-stack platform for tracking organizational hardware assets and SaaS software licenses — built with **.NET 8** on a Clean Architecture foundation and a **React 19 + TypeScript** front end.
