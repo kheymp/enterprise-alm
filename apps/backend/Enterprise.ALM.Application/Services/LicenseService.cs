@@ -43,7 +43,7 @@ public class LicenseService : ILicenseService
             Publisher = dto.Publisher,
             TotalSeats = dto.TotalSeats,
             CostPerSeat = dto.CostPerSeat,
-            RenewalDate = dto.RenewalDate,
+            RenewalDate = DateTime.SpecifyKind(dto.RenewalDate, DateTimeKind.Utc),
             IsActive = dto.IsActive
         };
 
@@ -72,7 +72,7 @@ public class LicenseService : ILicenseService
         license.Publisher = dto.Publisher;
         license.TotalSeats = dto.TotalSeats;
         license.CostPerSeat = dto.CostPerSeat;
-        license.RenewalDate = dto.RenewalDate;
+        license.RenewalDate = DateTime.SpecifyKind(dto.RenewalDate, DateTimeKind.Utc);
         license.IsActive = dto.IsActive;
         await _licenseRepository.SaveChangesAsync();
         var allocatedSeats = await _licenseRepository.GetAllocationCountAsync(id);

@@ -79,7 +79,9 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddHostedService<LicenseExpirationJob>();
 builder.Services.AddHostedService<DemoResetJob>();
 
-builder.Services.AddControllers();
+// Returns RFC 7807 ProblemDetails JSON for unhandled exceptions, so error
+// responses carry CORS headers instead of surfacing as "Failed to fetch".
+builder.Services.AddProblemDetails();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -103,6 +105,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+// First in the pipeline so it catches exceptions from every downstream middleware.
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

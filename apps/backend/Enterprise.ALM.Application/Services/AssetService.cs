@@ -75,7 +75,7 @@ public class AssetService : IAssetService
         {
             Name = dto.Name,
             SerialNumber = dto.SerialNumber,
-            PurchaseDate = dto.PurchaseDate,
+            PurchaseDate = DateTime.SpecifyKind(dto.PurchaseDate, DateTimeKind.Utc),
             IsActive = dto.IsActive,
             PurchasePrice = dto.PurchasePrice,
             ExpectedLifespanMonths = dto.ExpectedLifespanMonths,
@@ -104,7 +104,7 @@ public class AssetService : IAssetService
         if (asset == null) return null;
         asset.Name = dto.Name;
         asset.SerialNumber = dto.SerialNumber;
-        asset.PurchaseDate = dto.PurchaseDate;
+        asset.PurchaseDate = DateTime.SpecifyKind(dto.PurchaseDate, DateTimeKind.Utc);
         asset.IsActive = dto.IsActive;
         asset.PurchasePrice = dto.PurchasePrice;
         asset.ExpectedLifespanMonths = dto.ExpectedLifespanMonths;
@@ -144,7 +144,7 @@ public class AssetService : IAssetService
         var record = new MaintenanceRecord
         {
             AssetId = assetId,
-            DatePerformed = dto.DatePerformed,
+            DatePerformed = DateTime.SpecifyKind(dto.DatePerformed, DateTimeKind.Utc),
             Description = dto.Description,
             Cost = dto.Cost
         };
