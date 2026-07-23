@@ -1,3 +1,6 @@
+[![CI](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml/badge.svg)](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml)
+
+
 # Enterprise Asset & License Manager (ALM)
 
 [![CI](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml/badge.svg)](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml)
