@@ -1,60 +1,82 @@
 # Enterprise Asset & License Manager (ALM)
 
-A full-stack platform for tracking organizational hardware assets and SaaS software licenses — built with **.NET 8** on a Clean Architecture foundation and a **React 19 + TypeScript** front end.
+[![CI](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml/badge.svg)](https://github.com/kheymp/enterprise-alm/actions/workflows/ci.yml)
 
-It handles the full asset lifecycle (procurement → maintenance → depreciation → retirement), SaaS license seat allocation, role-based access control, and an automatic audit trail of every change.
+A full-stack platform for IT teams to track hardware assets and SaaS license seats through their entire lifecycle — built with **.NET 8** (Clean Architecture) and **React 19 + TypeScript**, deployed to production.
 
-> **Status:** Core feature set complete and running locally. Actively extending — see the [Roadmap](#-roadmap).
+## 🔗 Live Demo
 
-<!-- Live demo: _coming soon_ -->
+**[enterprise-alm-frontend.vercel.app](https://enterprise-alm-frontend.vercel.app)**
+
+Click **"Admin — full access"** on the login page (`demo@enterprise-alm.app`) — a public full-admin sandbox. Change anything; a background job resets the demo data every hour.
+
+| Layer | Hosted on |
+| --- | --- |
+| React frontend | Vercel |
+| .NET API (containerized) | Render |
+| PostgreSQL | Neon |
 
 ## 📸 Screenshots
 
-<!--
-  Save images to docs/screenshots/ and uncomment the lines below.
-  Suggested captures: dashboard, asset detail w/ depreciation, license seat allocation, audit log.
--->
-<!-- ![Dashboard](docs/screenshots/dashboard.png) -->
-<!-- ![Asset Details](docs/screenshots/asset-details.png) -->
-<!-- ![License Allocation](docs/screenshots/licenses.png) -->
-<!-- ![Audit Log](docs/screenshots/audit-log.png) -->
+**Dashboard** — live inventory summary with allocation charts and an activity feed sourced from the audit log:
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+**License management** — seat usage, per-seat cost, and renewal tracking with expiry warnings:
+
+![License Management](docs/screenshots/licenses.png)
+
+**Audit trail** — automatic change capture: action, entity, changed columns, actor, and timestamp:
+
+![Audit Trail](docs/screenshots/audit-log.png)
+
+## ⭐ Highlights
+
+- **Clean Architecture, enforced by project references** — `Domain` has zero dependencies; `Application` defines repository interfaces that `Infrastructure` implements. Business logic never touches data access.
+- **Automatic audit trail** — every entity change is captured via the EF Core `ChangeTracker`: old/new values, changed columns, acting user, UTC timestamp. No per-controller audit code.
+- **CI as a required gate** — GitHub Actions builds, lints, and tests both apps on every PR; `main` is branch-protected, so nothing merges red. Merges auto-deploy to Render + Vercel.
+- **Self-healing public demo** — an hourly `BackgroundService` wipes visitor changes and re-seeds baseline data, so the live demo can safely offer full admin access.
+- **Unit-tested business logic** — xUnit + Moq suites over the auth, asset (depreciation), and license (seat-allocation) services, running in CI.
+- **Security fundamentals** — JWT bearer auth with BCrypt-hashed passwords, per-endpoint role enforcement, secrets via user-secrets/env vars (never committed), startup fail-fast on missing config.
+
+## 🚀 Tech Stack
+
+**Backend:** .NET 8 (ASP.NET Core Web API) · Entity Framework Core 8 + Npgsql (PostgreSQL) · JWT Bearer 8.0 · BCrypt.Net-Next 4.2 · Swashbuckle 6.4 (Swagger)
+
+**Frontend:** React 19.2 · TypeScript 6.0 · Material-UI 9 · React Router 7.18 · Recharts 3.9 · Vite 8
+
+**Testing & tooling:** xUnit 2.4 + Moq 4.20 · pnpm 11 workspaces · Turborepo 2 · GitHub Actions · Docker
 
 ## ✨ Features
 
 ### 💻 Hardware Asset Lifecycle
-- Full CRUD over physical assets (laptops, desktops, servers) with serial-number tracking.
-- **Maintenance history** — log dated service records with cost against any asset.
+- Full CRUD over physical assets with serial-number tracking and employee assignment.
+- **Maintenance history** — dated service records with cost against any asset.
 - **Straight-line depreciation** — current book value computed from purchase price, expected lifespan, and salvage value.
-- Assign and reassign assets to individual employees.
 
 ### 🔑 SaaS License Management
-- Track software licenses with total seat counts and renewal dates.
-- **Seat allocation** — allocate and release individual seats per user, with capacity enforcement.
-- **Soft deletes** — deactivated licenses are retained for historical reporting rather than destroyed.
+- Licenses with seat counts and renewal dates; per-user **seat allocation with capacity enforcement**.
+- **Soft deletes** — deactivated licenses are retained for historical reporting.
+- `LicenseExpirationJob` (24-hour `BackgroundService`) auto-deactivates licenses past renewal.
 
 ### 🛡️ Role-Based Access Control
-Three seeded roles, enforced per-endpoint with framework-native `[Authorize(Roles = ...)]` attributes:
+Three seeded roles enforced per-endpoint with `[Authorize(Roles = ...)]`:
 
 | Role | Access |
 | --- | --- |
-| **Admin** | Full system authorization and rule control |
+| **Admin** | Full system control, user management, audit log |
 | **Manager** | Read/write assets, licenses, and seats |
-| **Viewer** | Read-only access to monitoring dashboards |
+| **Viewer** | Read-only dashboards |
 
-Authentication is JWT bearer-based, with passwords hashed using BCrypt.
+### 📜 Audit Trail & Dashboard
+- Automatic change capture (old values, new values, changed columns, actor, timestamp) exposed to Admins as a filterable, paginated view.
+- Real-time inventory dashboard with a recent-activity feed sourced from the audit log.
 
-### 📜 Audit Trail
-Entity changes are captured automatically via the EF Core `ChangeTracker` — recording old values, new values, the specific columns that changed, the acting user, and a UTC timestamp. Exposed to Admins through a filterable, paginated view.
-
-### 📊 Dashboard
-Real-time inventory summary with a recent-activity feed sourced from the audit log.
-
-### ⏱️ Background Processing
-`LicenseExpirationJob` runs as a long-lived `BackgroundService` on a 24-hour interval, automatically deactivating any active license whose renewal date has passed. It resolves a scoped `DbContext` per run and logs failures without tearing down the host.
+### 🖥️ Frontend
+- Centralized typed API client (`src/lib/api.ts`) — base URL from environment, unified `ProblemDetails`/validation error parsing.
+- Role-aware navigation and route guards driven by the decoded JWT.
 
 ## 🏛️ Architecture
-
-The backend follows **Clean Architecture** across four projects. Dependencies point inward — `Domain` has no project references, and `Application` defines the repository *interfaces* that `Infrastructure` implements, so business logic never depends on data access.
 
 ```
    Api  ────►  Application  ◄────  Infrastructure
@@ -65,51 +87,26 @@ The backend follows **Clean Architecture** across four projects. Dependencies po
 | Project | Responsibility |
 | --- | --- |
 | `Enterprise.ALM.Domain` | Entities and business models. No dependencies. |
-| `Enterprise.ALM.Application` | Services, DTOs, and repository interfaces. Holds business logic such as depreciation calculation. |
-| `Enterprise.ALM.Infrastructure` | EF Core `DbContext`, repository implementations, migrations, background jobs. |
-| `Enterprise.ALM.Api` | Controllers, JWT/CORS configuration, dependency injection composition root. |
+| `Enterprise.ALM.Application` | Services, DTOs, repository interfaces. Business logic (e.g., depreciation). |
+| `Enterprise.ALM.Infrastructure` | EF Core `DbContext`, repositories, migrations, background jobs. |
+| `Enterprise.ALM.Api` | Controllers, JWT/CORS config, DI composition root. |
+| `Enterprise.ALM.Tests` | xUnit + Moq unit tests over Application services. |
 
-Additional patterns: repository pattern over EF Core, a DTO boundary so entities are never exposed directly over HTTP, and **14 EF Core migrations** tracking schema evolution from initial creation through the audit-log addition.
+Entities never cross the HTTP boundary (DTOs only). Migrations apply automatically at startup. Unhandled exceptions return RFC 7807 `ProblemDetails`. The repo is a pnpm workspace orchestrated by Turborepo: .NET solution in `apps/backend`, React app in `apps/frontend`.
 
-The repo is a **pnpm workspace** orchestrated by **Turborepo**, with the .NET solution under `apps/backend` and the React app under `apps/frontend`.
-
-## 🚀 Tech Stack
-
-### Backend
-- **.NET 8** (ASP.NET Core Web API), C#
-- **Entity Framework Core 8** with SQL Server 2022
-- **JWT Bearer Authentication** 8.0.0 + **BCrypt.Net-Next** 4.2.0
-- **Swashbuckle** 6.4.0 (Swagger / OpenAPI)
-
-### Frontend
-- **React 19.2** + **TypeScript 6**
-- **Material-UI (MUI) 9** with a custom theme
-- **Recharts 3.9** for data visualization
-- **React Router 7.18**, **jwt-decode 4**
-- **Vite 8**
-
-### Tooling
-- **pnpm 11** workspaces, **Turborepo 2**, **Docker Compose**, Node.js 18+
-
-## 📦 Getting Started
+## 📦 Running Locally
 
 ### Prerequisites
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- [Node.js](https://nodejs.org/) 18+ and [pnpm](https://pnpm.io/) 11+
-- [Docker](https://www.docker.com/) (for the SQL Server instance)
-- EF Core CLI tools: `dotnet tool install --global dotnet-ef`
-
-### 1. Start the database
+- [Node.js](https://nodejs.org/) 22+ and [pnpm](https://pnpm.io/) 11+
+- PostgreSQL — local install, or Docker:
 
 ```bash
-docker compose up -d
+docker run --name alm-postgres -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=enterprise_alm -p 5432:5432 -d postgres:16
 ```
 
-This starts SQL Server 2022 on port `1433`, with data persisted to a named volume.
-
-### 2. Configure secrets
-
-`appsettings.json` ships with placeholder values. Supply real ones via .NET user secrets so nothing sensitive is committed:
+### 1. Configure backend secrets
 
 ```bash
 cd apps/backend/Enterprise.ALM.Api
@@ -117,57 +114,43 @@ cd apps/backend/Enterprise.ALM.Api
 dotnet user-secrets init
 dotnet user-secrets set "JwtSettings:SecretKey" "<a-random-string-of-at-least-32-characters>"
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
-  "Server=localhost,1433;Database=EnterpriseALM;User Id=sa;Password=<your-docker-sa-password>;TrustServerCertificate=True;"
+  "Host=localhost;Port=5432;Database=enterprise_alm;Username=postgres;Password=postgres"
 ```
 
-> The JWT signing key **must be at least 32 bytes** — HMAC-SHA256 will throw at startup with anything shorter.
+> The JWT key **must be at least 32 characters** — the app fails fast at startup otherwise.
 
-### 3. Apply migrations
-
-Migrations live in `Infrastructure` while the host is `Api`, so both projects are specified:
-
-```bash
-cd apps/backend
-dotnet ef database update \
-  --project Enterprise.ALM.Infrastructure \
-  --startup-project Enterprise.ALM.Api
-```
-
-### 4. Run the API
+### 2. Run the API
 
 ```bash
 cd apps/backend
 dotnet run --project Enterprise.ALM.Api
 ```
 
-The API listens on `http://localhost:5132` (HTTPS on `https://localhost:7145`) and opens **Swagger UI** in your browser.
+Migrations apply automatically on startup. The API listens on `http://localhost:5132` with **Swagger UI** in development.
 
-### 5. Run the frontend
+### 3. Run the frontend
 
 ```bash
+pnpm install                 # from the repo root (workspace install)
 cd apps/frontend
-pnpm install
+cp .env.example .env         # sets VITE_API_URL=http://localhost:5132
 pnpm dev
 ```
 
-The app is served at `http://localhost:5173` — the only origin permitted by the API's CORS policy.
+App runs at `http://localhost:5173` (the origin allowed by the default CORS config).
 
-### 6. Create your first Admin account
+### 4. Log in
 
-A fresh database is seeded with **roles but no users**, and self-registration always creates a **Viewer** (the lowest-privilege role). To reach Admin-only areas such as User Management and the Audit Log, promote your account directly in the database after registering:
+The demo Admin (`demo@enterprise-alm.app` / `Demo!2026`) is seeded automatically at startup along with baseline data — use the login page button or the credentials directly. Self-registration deliberately creates only **Viewer** accounts; promoting a registered account is an Admin operation (or directly in the DB for a first bootstrap):
 
 ```sql
-UPDATE Users SET RoleId = 1 WHERE Email = 'your.email@example.com';
+UPDATE "Users" SET "RoleId" = 1 WHERE "Email" = 'your.email@example.com';
 -- RoleId: 1 = Admin, 2 = Manager, 3 = Viewer
 ```
 
-Log out and back in afterwards so the new role is embedded in a freshly issued JWT.
-
-> This manual step is deliberate — open self-registration into a privileged role would be an obvious security hole. Provisioning real Admins is an existing-Admin operation via `POST /api/users`; this bootstrap only exists to create the very first one.
-
 ## 🔌 API Overview
 
-All endpoints are prefixed with `/api` and require authentication unless noted. Full request/response schemas are available in Swagger while the API is running.
+All endpoints are prefixed with `/api` and require authentication unless noted. Full schemas in Swagger.
 
 | Controller | Endpoints | Required Role |
 | --- | --- | --- |
@@ -184,14 +167,11 @@ All endpoints are prefixed with `/api` and require authentication unless noted. 
 
 ## 🗺️ Roadmap
 
-- [ ] **Unit test suite** — xUnit + Moq covering `AuthService`, depreciation calculation, and seat-allocation limits
-- [ ] **CI pipeline** — GitHub Actions running build, test, and lint on every push
-- [ ] **Deployment** — containerize the API and publish a live demo (Azure App Service + Azure SQL)
-- [ ] **Centralized API client** — replace per-page `fetch` calls and hardcoded URLs with a single typed wrapper driven by environment variables
 - [ ] **Refresh-token rotation** — currently a single 120-minute access token
-- [ ] **Component decomposition** — extract data hooks and presentational components out of the larger page files
-- [ ] **Server-side validation** — FluentValidation on request DTOs and a global exception-handling middleware
+- [ ] **Integration tests in CI** — throwaway Postgres service container for repository-level tests
+- [ ] **FluentValidation** on request DTOs
+- [ ] **Frontend type hardening** — burn down the `any` lint-warning backlog; extract data hooks from larger page components
 
 ## 👨‍💻 About The Author
 
-Built by **Kheymp** to demonstrate full-stack engineering across a realistic enterprise domain — with an emphasis on layered backend design, security fundamentals, and maintainable data modeling.
+Built by **Kheymp** to demonstrate full-stack engineering across a realistic enterprise domain — layered backend design, security fundamentals, and a fully automated path from pull request to production.
