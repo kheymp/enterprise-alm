@@ -23,7 +23,7 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import BuildIcon from '@mui/icons-material/Build';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
-import { api } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 
 const PAGE_SIZE = 8;
 
@@ -126,8 +126,8 @@ function AssetFormDialog({ open, onClose, editingAsset, users, onSaved, canModif
 
             onSaved(editingAsset ? `"${name}" updated successfully.` : `"${name}" registered successfully.`);
             onClose();
-        } catch (err: any) {
-            setFormError(err.message);
+        } catch (err) {
+            setFormError(getErrorMessage(err));
         } finally {
             setSaving(false);
         }
@@ -341,8 +341,8 @@ function AssetDetailsDialog({ open, assetDetails, canModify, onClose, onMaintena
             setMaintenanceCost('');
             setMaintenanceDate(new Date().toISOString().split('T')[0]);
             onMaintenanceAdded();
-        } catch (err: any) {
-            setFormError(err.message);
+        } catch (err) {
+            setFormError(getErrorMessage(err));
         } finally {
             setSaving(false);
         }
@@ -746,8 +746,8 @@ export default function Assets() {
             const data = await api.get<any[]>('/api/assets');
             setAssets(data);
             setError(null);
-        } catch (err: any) {
-            setError(err.message || 'An error occurred.');
+        } catch (err) {
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -767,8 +767,8 @@ export default function Assets() {
             const data = await api.get<any>(`/api/assets/${id}`);
             setAssetDetails(data);
             setDetailsOpen(true);
-        } catch (err: any) {
-            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        } catch (err) {
+            setSnackbar({ open: true, message: getErrorMessage(err), severity: 'error' });
         }
     };
 
@@ -826,8 +826,8 @@ export default function Assets() {
             setDeleteDialogOpen(false);
             setAssetToDelete(null);
             fetchAssets();
-        } catch (err: any) {
-            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        } catch (err) {
+            setSnackbar({ open: true, message: getErrorMessage(err), severity: 'error' });
         } finally {
             setDeleting(false);
         }

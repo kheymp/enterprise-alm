@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import { api } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 
 interface AuditLogEntry {
     id: number;
@@ -237,8 +237,8 @@ export default function AuditLog() {
             setLogs(data);
             setHasMore(data.length === pageSize);
             setError(null);
-        } catch (err: any) {
-            setError(err.message || 'An error occurred.');
+        } catch (err) {
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }

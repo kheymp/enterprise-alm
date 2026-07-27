@@ -23,7 +23,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import KeyIcon from '@mui/icons-material/Key';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
-import { api } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 
 /* ── Types ── */
 interface License {
@@ -142,8 +142,8 @@ function LicenseFormDialog({ open, onClose, editingLicense, onSaved, canModify }
 
             onSaved(editingLicense ? `"${name}" updated successfully.` : `"${name}" registered successfully.`);
             onClose();
-        } catch (err: any) {
-            setFormError(err.message);
+        } catch (err) {
+            setFormError(getErrorMessage(err));
         } finally {
             setSaving(false);
         }
@@ -674,8 +674,8 @@ export default function Licenses() {
             const data = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
             setSoftwareLicenses(data);
             setError(null);
-        } catch (err: any) {
-            setError(err.message || 'An error occurred.');
+        } catch (err) {
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -743,8 +743,8 @@ export default function Licenses() {
             setDeleteDialogOpen(false);
             setLicenseToDelete(null);
             fetchSoftwareLicenses();
-        } catch (err: any) {
-            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        } catch (err) {
+            setSnackbar({ open: true, message: getErrorMessage(err), severity: 'error' });
         } finally {
             setDeleting(false);
         }
@@ -764,8 +764,8 @@ export default function Licenses() {
             const updated = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
             const refreshed = updated.find(l => l.id === licenseId);
             if (refreshed) setSelectedLicense(refreshed);
-        } catch (err: any) {
-            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        } catch (err) {
+            setSnackbar({ open: true, message: getErrorMessage(err), severity: 'error' });
         }
     };
 
@@ -778,8 +778,8 @@ export default function Licenses() {
             const updated = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
             const refreshed = updated.find(l => l.id === licenseId);
             if (refreshed) setSelectedLicense(refreshed);
-        } catch (err: any) {
-            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        } catch (err) {
+            setSnackbar({ open: true, message: getErrorMessage(err), severity: 'error' });
         }
     };
 

@@ -17,7 +17,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { api } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 
 /* ── Types ── */
 interface DashboardSummary {
@@ -190,8 +190,8 @@ export default function Dashboard() {
                 if (auditData) setRecentActivity(auditData);
 
                 setError(null);
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err) {
+                setError(getErrorMessage(err));
             } finally {
                 setLoading(false);
             }
