@@ -10,20 +10,9 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { api, getErrorMessage } from '../lib/api';
+import type { AuditLogResponse } from '../lib/types';
 
-interface AuditLogEntry {
-    id: number;
-    entityName: string;
-    entityId: string;
-    action: 'Created' | 'Updated' | 'Deleted';
-    oldValues: string | null;
-    newValues: string | null;
-    changedColumns: string | null;
-    performedBy: string | null;
-    timestamp: string;
-}
-
-function parseJson(value: string | null): Record<string, any> | null {
+function parseJson(value: string | null): Record<string, unknown> | null {
     if (!value) return null;
     try { return JSON.parse(value); } catch { return null; }
 }
@@ -36,7 +25,7 @@ function getActionColor(action: string): 'success' | 'warning' | 'error' | 'defa
 }
 
 /* ── Detail values panel (shared by both layouts) ── */
-function ValuesPanel({ log }: { log: AuditLogEntry }) {
+function ValuesPanel({ log }: { log: AuditLogResponse }) {
     const oldVals = parseJson(log.oldValues);
     const newVals = parseJson(log.newValues);
 
@@ -73,7 +62,7 @@ function ValuesPanel({ log }: { log: AuditLogEntry }) {
 }
 
 /* ── Desktop: expandable table row (unchanged) ── */
-function DetailPanel({ log }: { log: AuditLogEntry }) {
+function DetailPanel({ log }: { log: AuditLogResponse }) {
     const [open, setOpen] = useState(false);
     const changedCols: string[] | null = log.changedColumns ? JSON.parse(log.changedColumns) : null;
     const hasDetail = log.oldValues || log.newValues;
@@ -131,7 +120,7 @@ function DetailPanel({ log }: { log: AuditLogEntry }) {
 }
 
 /* ── Mobile: card per audit entry ── */
-function MobileLogCard({ log }: { log: AuditLogEntry }) {
+function MobileLogCard({ log }: { log: AuditLogResponse }) {
     const [open, setOpen] = useState(false);
     const changedCols: string[] | null = log.changedColumns ? JSON.parse(log.changedColumns) : null;
     const hasDetail = log.oldValues || log.newValues;
@@ -210,7 +199,7 @@ export default function AuditLog() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+    const [logs, setLogs] = useState<AuditLogResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -233,7 +222,7 @@ export default function AuditLog() {
             params.set('page', String(currentPage));
             params.set('pageSize', String(pageSize));
 
-            const data = await api.get<AuditLogEntry[]>(`/api/auditlogs?${params}`);
+            const data = await api.get<AuditLogResponse[]>(`/api/auditlogs?${params}`);
             setLogs(data);
             setHasMore(data.length === pageSize);
             setError(null);

@@ -18,29 +18,8 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { api, getErrorMessage } from '../lib/api';
-
-/* ── Types ── */
-interface DashboardSummary {
-    totalAssets: number;
-    totalAssetValue: number | null;
-    totalLicenses: number;
-    totalLicenseCost: number | null;
-    assignedAssets: number;
-    unassignedAssets: number;
-    totalSeatsOwned: number;
-    totalSeatsUsed: number;
-    expiringLicensesCount: number;
-    expiringLicenses: any[];
-}
-
-interface AuditLogEntry {
-    id: number;
-    entityName: string;
-    entityId: string;
-    action: 'Created' | 'Updated' | 'Deleted';
-    performedBy: string | null;
-    timestamp: string;
-}
+import type { DashboardSummary, JwtPayload, AuditLogResponse } from '../lib/types';
+import type { DefaultLegendContentProps } from 'recharts';
 
 /* ── Helpers ── */
 function formatCurrency(value: number): string {
@@ -158,7 +137,7 @@ export default function Dashboard() {
     const navigate = useNavigate();
 
     const [summary, setSummary] = useState<DashboardSummary | null>(null);
-    const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([]);
+    const [recentActivity, setRecentActivity] = useState<AuditLogResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -168,7 +147,7 @@ export default function Dashboard() {
     let userRole = 'Viewer';
     if (token) {
         try {
-            const decoded: any = jwtDecode(token);
+            const decoded = jwtDecode<JwtPayload>(token);
             //userName = decoded.sub || decoded.unique_name || decoded.name || 'User';
             userName = decoded.email;
             userRole = decoded.role || 'Viewer';
@@ -183,7 +162,7 @@ export default function Dashboard() {
                 // Fetch dashboard summary and recent audit logs in parallel
                 const [summaryData, auditData] = await Promise.all([
                     api.get<DashboardSummary>('/api/dashboard/summary'),
-                    api.get<AuditLogEntry[]>('/api/auditlogs?page=1&pageSize=8').catch(() => null) // Non-critical
+                    api.get<AuditLogResponse[]>('/api/auditlogs?page=1&pageSize=8').catch(() => null) // Non-critical
                 ]);
 
                 setSummary(summaryData);
@@ -226,11 +205,11 @@ export default function Dashboard() {
     const COLORS = ['#4f46e5', '#e2e8f0'];
 
     // Custom rounded legend renderer
-    const renderLegend = (props: any) => {
-        const { payload } = props;
+    const renderLegend = (props: DefaultLegendContentProps) => {
+        const { payload = [] } = props;
         return (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
-                {payload.map((entry: any, index: number) => (
+                {payload.map((entry, index) => (
                     <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{
                             width: 10, height: 10, borderRadius: '50%',
@@ -484,7 +463,7 @@ export default function Dashboard() {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {summary.expiringLicenses.map((license: any, idx: number) => {
+                                            {summary.expiringLicenses.map((license, idx) => {
                                                 const daysLeft = getDaysUntilRenewal(license.renewalDate);
                                                 return (
                                                     <TableRow key={idx} hover>

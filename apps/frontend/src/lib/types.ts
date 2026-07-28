@@ -97,6 +97,25 @@ export interface DashboardSummary {
   expiringLicenses: ExpiringLicense[];
 }
 
+/* ── Audit ── */
+/**
+ * AuditLogResponseDto. `action` is a plain string on the DTO, but
+ * ApplicationDbContext derives it from an exhaustive switch on EntityState,
+ * so these four values are the complete set — including the "Unknown"
+ * fallback arm, which the frontend previously omitted.
+ */
+export interface AuditLogResponse {
+  id: number;
+  entityName: string;
+  entityId: string;
+  action: 'Created' | 'Updated' | 'Deleted' | 'Unknown';
+  oldValues: string | null;
+  newValues: string | null;
+  changedColumns: string | null;
+  performedBy: string | null;
+  timestamp: string;
+}
+
 /* ── Auth ── */
 /**
  * Claims written by AuthService.GenerateJwtToken. Not a DTO — this is the

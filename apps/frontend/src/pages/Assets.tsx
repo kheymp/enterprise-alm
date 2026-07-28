@@ -24,11 +24,19 @@ import BuildIcon from '@mui/icons-material/Build';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
 import { api, getErrorMessage } from '../lib/api';
+import type { AssetResponse, AssetDetailResponse, UserResponse, JwtPayload } from '../lib/types';
 
 const PAGE_SIZE = 8;
 
+/**
+ * The detail endpoint returns a server-computed current value; the list
+ * endpoint doesn't. getDepreciationPct accepts either and falls back to
+ * computing it locally.
+ */
+type AssetWithCurrentValue = AssetResponse & { calculatedCurrentValue?: number };
+
 /* ── Helpers ── */
-function calculateCurrentValue(asset: any): number {
+function calculateCurrentValue(asset: AssetResponse): number {
     const { purchasePrice, salvageValue, expectedLifespanMonths, purchaseDate } = asset;
     if (!purchasePrice || !expectedLifespanMonths || expectedLifespanMonths === 0) return purchasePrice ?? 0;
 
@@ -40,7 +48,7 @@ function calculateCurrentValue(asset: any): number {
     return Math.max(salvageValue ?? 0, purchasePrice - totalDepreciation);
 }
 
-function getDepreciationPct(asset: any): number {
+function getDepreciationPct(asset: AssetWithCurrentValue): number {
     if (!asset.purchasePrice || asset.purchasePrice === 0) return 0;
     const currentValue = asset.calculatedCurrentValue ?? calculateCurrentValue(asset);
     return Math.max(0, Math.min(100, (currentValue / asset.purchasePrice) * 100));
@@ -56,8 +64,8 @@ function getDepreciationColor(pct: number): 'success' | 'warning' | 'error' {
 function AssetFormDialog({ open, onClose, editingAsset, users, onSaved, canModify }: {
     open: boolean;
     onClose: () => void;
-    editingAsset: any | null;
-    users: any[];
+    editingAsset: AssetResponse | null;
+    users: UserResponse[];
     onSaved: (message: string) => void;
     canModify: boolean;
 }) {
@@ -253,7 +261,7 @@ function AssetFormDialog({ open, onClose, editingAsset, users, onSaved, canModif
 /* ── Delete Confirmation Dialog ── */
 function DeleteConfirmDialog({ open, asset, onClose, onConfirm, deleting }: {
     open: boolean;
-    asset: any | null;
+    asset: AssetResponse | null;
     onClose: () => void;
     onConfirm: () => void;
     deleting: boolean;
@@ -305,7 +313,7 @@ function DeleteConfirmDialog({ open, asset, onClose, onConfirm, deleting }: {
 /* ── Asset Details Dialog (polished) ── */
 function AssetDetailsDialog({ open, assetDetails, canModify, onClose, onMaintenanceAdded }: {
     open: boolean;
-    assetDetails: any | null;
+    assetDetails: AssetDetailResponse | null;
     canModify: boolean;
     onClose: () => void;
     onMaintenanceAdded: () => void;
@@ -455,7 +463,7 @@ function AssetDetailsDialog({ open, assetDetails, canModify, onClose, onMaintena
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        assetDetails.maintenanceRecords?.map((record: any) => (
+                                        assetDetails.maintenanceRecords?.map((record) => (
                                             <TableRow key={record.id}>
                                                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(record.datePerformed).toLocaleDateString()}</TableCell>
                                                 <TableCell>{record.description}</TableCell>
@@ -587,12 +595,12 @@ function MobileSkeletonCards({ count = 4 }: { count?: number }) {
 
 /* ── Mobile: card per asset ── */
 function MobileAssetCard({ asset, canModify, canDelete, onDetails, onEdit, onDelete }: {
-    asset: any;
+    asset: AssetResponse;
     canModify: boolean;
     canDelete: boolean;
-    onDetails: (asset: any) => void;
-    onEdit: (asset: any) => void;
-    onDelete: (asset: any) => void;
+    onDetails: (asset: AssetResponse) => void;
+    onEdit: (asset: AssetResponse) => void;
+    onDelete: (asset: AssetResponse) => void;
 }) {
     return (
         <Card variant="outlined" sx={{ mb: 1.5 }}>
@@ -646,12 +654,12 @@ function MobileAssetCard({ asset, canModify, canDelete, onDetails, onEdit, onDel
 
 /* ── Row actions overflow menu ── */
 function AssetRowActions({ asset, canModify, canDelete, onDetails, onEdit, onDelete }: {
-    asset: any;
+    asset: AssetResponse;
     canModify: boolean;
     canDelete: boolean;
-    onDetails: (asset: any) => void;
-    onEdit: (asset: any) => void;
-    onDelete: (asset: any) => void;
+    onDetails: (asset: AssetResponse) => void;
+    onEdit: (asset: AssetResponse) => void;
+    onDelete: (asset: AssetResponse) => void;
 }) {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
@@ -707,8 +715,8 @@ export default function Assets() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [assets, setAssets] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]);
+    const [assets, setAssets] = useState<AssetResponse[]>([]);
+    const [users, setUsers] = useState<UserResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -717,12 +725,12 @@ export default function Assets() {
 
     // Dialogs
     const [formOpen, setFormOpen] = useState(false);
-    const [editingAsset, setEditingAsset] = useState<any | null>(null);
+    const [editingAsset, setEditingAsset] = useState<AssetResponse | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [assetToDelete, setAssetToDelete] = useState<any | null>(null);
+    const [assetToDelete, setAssetToDelete] = useState<AssetResponse | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
-    const [assetDetails, setAssetDetails] = useState<any | null>(null);
+    const [assetDetails, setAssetDetails] = useState<AssetDetailResponse | null>(null);
 
     // Toast
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -733,7 +741,7 @@ export default function Assets() {
     const token = localStorage.getItem('token');
     let userRole: string | null = null;
     if (token) {
-        const decoded: any = jwtDecode(token);
+        const decoded = jwtDecode<JwtPayload>(token);
         userRole = decoded.role;
     }
     const canModify = userRole === 'Admin' || userRole === 'Manager';
@@ -743,7 +751,7 @@ export default function Assets() {
     const fetchAssets = async () => {
         try {
             setLoading(true);
-            const data = await api.get<any[]>('/api/assets');
+            const data = await api.get<AssetResponse[]>('/api/assets');
             setAssets(data);
             setError(null);
         } catch (err) {
@@ -755,7 +763,7 @@ export default function Assets() {
 
     const fetchUsers = async () => {
         try {
-            const data = await api.get<any[]>('/api/users');
+            const data = await api.get<UserResponse[]>('/api/users');
             setUsers(data);
         } catch {
             // Non-critical
@@ -764,7 +772,7 @@ export default function Assets() {
 
     const fetchAssetDetails = async (id: number) => {
         try {
-            const data = await api.get<any>(`/api/assets/${id}`);
+            const data = await api.get<AssetDetailResponse>(`/api/assets/${id}`);
             setAssetDetails(data);
             setDetailsOpen(true);
         } catch (err) {
@@ -802,7 +810,7 @@ export default function Assets() {
         setFormOpen(true);
     };
 
-    const handleOpenEdit = (asset: any) => {
+    const handleOpenEdit = (asset: AssetResponse) => {
         setEditingAsset(asset);
         setFormOpen(true);
     };
@@ -812,7 +820,7 @@ export default function Assets() {
         fetchAssets();
     };
 
-    const handleOpenDelete = (asset: any) => {
+    const handleOpenDelete = (asset: AssetResponse) => {
         setAssetToDelete(asset);
         setDeleteDialogOpen(true);
     };

@@ -24,18 +24,7 @@ import KeyIcon from '@mui/icons-material/Key';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { jwtDecode } from 'jwt-decode';
 import { api, getErrorMessage } from '../lib/api';
-
-/* ── Types ── */
-interface License {
-    id?: number;
-    name: string;
-    publisher: string;
-    totalSeats: number;
-    costPerSeat: number;
-    renewalDate: string;
-    isActive: boolean;
-    allocations: any[];
-}
+import type { LicenseResponse, UserResponse, JwtPayload } from '../lib/types';
 
 const PAGE_SIZE = 8;
 
@@ -53,7 +42,7 @@ function isExpired(dateString: string): boolean {
     return getDaysUntilRenewal(dateString) <= 0;
 }
 
-function getSeatUtilization(license: License): number {
+function getSeatUtilization(license: LicenseResponse): number {
     const used = license.allocations?.length || 0;
     if (license.totalSeats === 0) return 0;
     return (used / license.totalSeats) * 100;
@@ -81,7 +70,7 @@ function getRenewalChip(dateString: string) {
 function LicenseFormDialog({ open, onClose, editingLicense, onSaved, canModify }: {
     open: boolean;
     onClose: () => void;
-    editingLicense: License | null;
+    editingLicense: LicenseResponse | null;
     onSaved: (message: string) => void;
     canModify: boolean;
 }) {
@@ -249,7 +238,7 @@ function LicenseFormDialog({ open, onClose, editingLicense, onSaved, canModify }
 /* ── Delete Confirmation Dialog ── */
 function DeleteConfirmDialog({ open, license, onClose, onConfirm, deleting }: {
     open: boolean;
-    license: License | null;
+    license: LicenseResponse | null;
     onClose: () => void;
     onConfirm: () => void;
     deleting: boolean;
@@ -307,8 +296,8 @@ function DeleteConfirmDialog({ open, license, onClose, onConfirm, deleting }: {
 /* ── Assign Seat Dialog (polished) ── */
 function AssignSeatDialog({ open, license, users, canModify, onClose, onAssign, onRemove }: {
     open: boolean;
-    license: License | null;
-    users: any[];
+    license: LicenseResponse | null;
+    users: UserResponse[];
     canModify: boolean;
     onClose: () => void;
     onAssign: (licenseId: number, userId: number) => Promise<void>;
@@ -378,7 +367,7 @@ function AssignSeatDialog({ open, license, users, canModify, onClose, onAssign, 
                             Currently Assigned
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            {license.allocations.map((allocation: any) => {
+                            {license.allocations.map((allocation) => {
                                 const assignedUser = users.find(u => u.id === allocation.userId);
                                 return (
                                     <Chip
@@ -410,7 +399,7 @@ function AssignSeatDialog({ open, license, users, canModify, onClose, onAssign, 
                             onChange={(e) => setSelectedUserId(Number(e.target.value))}
                         >
                             {users.map((user) => {
-                                const isAlreadyAssigned = license.allocations?.some((a: any) => a.userId === user.id);
+                                const isAlreadyAssigned = license.allocations?.some((a) => a.userId === user.id);
                                 return (
                                     <MenuItem key={user.id} value={user.id} disabled={isAlreadyAssigned}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -500,11 +489,11 @@ function MobileSkeletonCards({ count = 4 }: { count?: number }) {
 
 /* ── Mobile: card per license ── */
 function MobileLicenseCard({ license, canModify, onEdit, onDelete, onAssign }: {
-    license: License;
+    license: LicenseResponse;
     canModify: boolean;
-    onEdit: (license: License) => void;
-    onDelete: (license: License) => void;
-    onAssign: (license: License) => void;
+    onEdit: (license: LicenseResponse) => void;
+    onDelete: (license: LicenseResponse) => void;
+    onAssign: (license: LicenseResponse) => void;
 }) {
     const usedSeats = license.allocations?.length || 0;
     const utilization = getSeatUtilization(license);
@@ -573,11 +562,11 @@ function MobileLicenseCard({ license, canModify, onEdit, onDelete, onAssign }: {
 
 /* ── Row actions overflow menu ── */
 function LicenseRowActions({ license, canModify, onAssign, onEdit, onDelete }: {
-    license: License;
+    license: LicenseResponse;
     canModify: boolean;
-    onAssign: (license: License) => void;
-    onEdit: (license: License) => void;
-    onDelete: (license: License) => void;
+    onAssign: (license: LicenseResponse) => void;
+    onEdit: (license: LicenseResponse) => void;
+    onDelete: (license: LicenseResponse) => void;
 }) {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
@@ -634,7 +623,7 @@ export default function Licenses() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [softwareLicenses, setSoftwareLicenses] = useState<License[]>([]);
+    const [softwareLicenses, setSoftwareLicenses] = useState<LicenseResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -644,14 +633,14 @@ export default function Licenses() {
 
     // Dialogs
     const [formOpen, setFormOpen] = useState(false);
-    const [editingLicense, setEditingLicense] = useState<License | null>(null);
+    const [editingLicense, setEditingLicense] = useState<LicenseResponse | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [licenseToDelete, setLicenseToDelete] = useState<License | null>(null);
+    const [licenseToDelete, setLicenseToDelete] = useState<LicenseResponse | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-    const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
+    const [selectedLicense, setSelectedLicense] = useState<LicenseResponse | null>(null);
 
-    const [users, setUsers] = useState<any[]>([]);
+    const [users, setUsers] = useState<UserResponse[]>([]);
 
     // Toast
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -662,7 +651,7 @@ export default function Licenses() {
     const token = localStorage.getItem('token');
     let userRole: string | null = null;
     if (token) {
-        const decoded: any = jwtDecode(token);
+        const decoded = jwtDecode<JwtPayload>(token);
         userRole = decoded.role;
     }
     const canModify = userRole === 'Admin' || userRole === 'Manager';
@@ -671,7 +660,7 @@ export default function Licenses() {
     const fetchSoftwareLicenses = async () => {
         try {
             setLoading(true);
-            const data = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
+            const data = await api.get<LicenseResponse[]>(`/api/licenses?showInactive=${showInactive}`);
             setSoftwareLicenses(data);
             setError(null);
         } catch (err) {
@@ -683,7 +672,7 @@ export default function Licenses() {
 
     const fetchUsers = async () => {
         try {
-            const data = await api.get<any[]>('/api/users');
+            const data = await api.get<UserResponse[]>('/api/users');
             setUsers(data);
         } catch {
             // Users fetch failure is non-critical
@@ -719,7 +708,7 @@ export default function Licenses() {
         setFormOpen(true);
     };
 
-    const handleOpenEdit = (license: License) => {
+    const handleOpenEdit = (license: LicenseResponse) => {
         setEditingLicense(license);
         setFormOpen(true);
     };
@@ -729,7 +718,7 @@ export default function Licenses() {
         fetchSoftwareLicenses();
     };
 
-    const handleOpenDelete = (license: License) => {
+    const handleOpenDelete = (license: LicenseResponse) => {
         setLicenseToDelete(license);
         setDeleteDialogOpen(true);
     };
@@ -750,7 +739,7 @@ export default function Licenses() {
         }
     };
 
-    const handleOpenAssign = (license: License) => {
+    const handleOpenAssign = (license: LicenseResponse) => {
         setSelectedLicense(license);
         setAssignDialogOpen(true);
     };
@@ -761,7 +750,7 @@ export default function Licenses() {
             setSnackbar({ open: true, message: 'Seat assigned successfully.', severity: 'success' });
             await fetchSoftwareLicenses();
             // Refresh selected license in the assign dialog
-            const updated = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
+            const updated = await api.get<LicenseResponse[]>(`/api/licenses?showInactive=${showInactive}`);
             const refreshed = updated.find(l => l.id === licenseId);
             if (refreshed) setSelectedLicense(refreshed);
         } catch (err) {
@@ -775,7 +764,7 @@ export default function Licenses() {
             setSnackbar({ open: true, message: 'Seat removed successfully.', severity: 'success' });
             await fetchSoftwareLicenses();
             // Refresh selected license in the assign dialog
-            const updated = await api.get<License[]>(`/api/licenses?showInactive=${showInactive}`);
+            const updated = await api.get<LicenseResponse[]>(`/api/licenses?showInactive=${showInactive}`);
             const refreshed = updated.find(l => l.id === licenseId);
             if (refreshed) setSelectedLicense(refreshed);
         } catch (err) {
