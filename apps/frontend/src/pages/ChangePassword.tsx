@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Container, Card, CardContent, TextField, Button, Typography, Box, Alert } from "@mui/material";
-import { api } from "../lib/api";
+import { api, getErrorMessage } from "../lib/api";
 
 export default function ChangePassword() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -22,8 +22,8 @@ export default function ChangePassword() {
       });
       localStorage.setItem('token', data.token); // fresh token: mustChangePassword now false
       window.location.href = '/';
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

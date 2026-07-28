@@ -10,6 +10,16 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * TypeScript types a caught value as `unknown`, since JS lets you throw
+ * anything. Everything api.ts throws is an ApiError (which extends Error),
+ * so this narrows to the message and falls back for genuine surprises.
+ */
+export function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return 'Something went wrong. Please try again.';
+}
+
 async function parseError(res: Response): Promise<string> {
   const contentType = res.headers.get('content-type') ?? '';
 

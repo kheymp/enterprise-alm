@@ -20,7 +20,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import GroupIcon from '@mui/icons-material/Group';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { api } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 
 /* ── Types ── */
 interface User {
@@ -124,8 +124,8 @@ function UserFormDialog({ open, onClose, editingUser, onSaved }: {
                 onSaved(`"${username}" created successfully.`);
                 setTempPassword(created.temporaryPassword ?? null); // keep dialog open to reveal it
             }
-        } catch (err: any) {
-            setFormError(err.message);
+        } catch (err) {
+            setFormError(getErrorMessage(err));
         } finally {
             setSaving(false);
         }
@@ -511,8 +511,8 @@ export default function UserManagement() {
             const data = await api.get<User[]>('/api/users');
             setUsers(data);
             setError(null);
-        } catch (err: any) {
-            setError(err.message || 'An error occured while talking to the API.');
+        } catch (err) {
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -569,8 +569,8 @@ export default function UserManagement() {
             setDeleteDialogOpen(false);
             setUserToDelete(null);
             fetchUsers();
-        } catch (err: any) {
-            setSnackbar({ open: true, message: err.message, severity: 'error' });
+        } catch (err) {
+            setSnackbar({ open: true, message: getErrorMessage(err), severity: 'error' });
         } finally {
             setDeleting(false);
         }

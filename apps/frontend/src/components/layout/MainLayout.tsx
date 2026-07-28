@@ -13,6 +13,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/History';
 import { jwtDecode } from "jwt-decode";
 import { useNavigate, useLocation } from "react-router-dom";
+import type { JwtPayload } from '../../lib/types';
 
 
 const drawerWidth = 260;
@@ -26,9 +27,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const navigate = useNavigate();
     const location = useLocation();
 
-    let userRole = null;
+    let userRole = "";
     if (token) {
-        const decoded: any = jwtDecode(token);
+        const decoded = jwtDecode<JwtPayload>(token);
         userRole = decoded.role;   // "Admin", "Manager", or "Viewer"
     }
 
