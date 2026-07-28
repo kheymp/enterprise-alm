@@ -102,12 +102,13 @@ Entities never cross the HTTP boundary (DTOs only). Migrations apply automatical
 ### Prerequisites
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
 - [Node.js](https://nodejs.org/) 22+ and [pnpm](https://pnpm.io/) 11+
-- PostgreSQL — local install, or Docker:
+- PostgreSQL — local install, or the bundled Compose file, from the repo root:
 
 ```bash
-docker run --name alm-postgres -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=enterprise_alm -p 5432:5432 -d postgres:16
+docker compose up -d
 ```
+
+Starts `postgres:16` on port 5432 with database `enterprise_alm` and user/password `postgres`/`postgres` — matching the connection string in step 1.
 
 ### 1. Configure backend secrets
 
@@ -150,6 +151,16 @@ The demo Admin (`demo@enterprise-alm.app` / `Demo!2026`) is seeded automatically
 UPDATE "Users" SET "RoleId" = 1 WHERE "Email" = 'your.email@example.com';
 -- RoleId: 1 = Admin, 2 = Manager, 3 = Viewer
 ```
+
+### Shortcut: run both apps at once
+
+From the repo root, Turborepo starts the API and the frontend together:
+
+```bash
+pnpm dev
+```
+
+Equivalent to steps 2 and 3 in separate terminals. Postgres must already be running — the API applies migrations at startup and exits if it can't connect.
 
 ## 🔌 API Overview
 
