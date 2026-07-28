@@ -8,6 +8,7 @@ import Licenses from './pages/Licenses';
 import Dashboard from './pages/Dashboard';
 import AuditLog from './pages/AuditLog';
 import ChangePassword from './pages/ChangePassword';
+import type { JwtPayload } from './lib/types';
 
 // 1. The Bouncer (Protected Route)
 const ProtectedRoute = ({
@@ -23,7 +24,7 @@ const ProtectedRoute = ({
   if (!currentToken) {
     return <Navigate to="/login" replace />;
   }
-  const decoded: any = jwtDecode(currentToken);
+  const decoded = jwtDecode<JwtPayload>(currentToken);
 
   // Force the temp-password user onto the change screen before anything else.
   if (decoded.mustChangePassword === "true" && !allowPasswordChange) {

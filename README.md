@@ -173,7 +173,8 @@ All endpoints are prefixed with `/api` and require authentication unless noted. 
 - [ ] **Refresh-token rotation** — currently a single 120-minute access token
 - [ ] **Integration tests in CI** — throwaway Postgres service container for repository-level tests
 - [ ] **FluentValidation** on request DTOs
-- [ ] **Frontend type hardening** — burn down the `any` lint-warning backlog; extract data hooks from larger page components
+- [x] **Frontend type hardening** — `any` cleared from the React app; `@typescript-eslint/no-explicit-any` now fails the build
+- [ ] **Extract data hooks** from the larger page components (Assets, Licenses, UserManagement)
 
 ## 👨‍💻 About The Author
 

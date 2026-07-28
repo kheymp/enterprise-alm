@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Container, Card, CardContent, TextField, Button, Typography, Box, Alert } from "@mui/material";
 import { useLocation } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, getErrorMessage } from "../lib/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -30,8 +30,8 @@ export default function Login() {
         '/api/auth/login', { email: emailArg, password: passwordArg });
       localStorage.setItem('token', data.token);
       window.location.href = data.mustChangePassword ? '/change-password' : '/';
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

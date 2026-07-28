@@ -19,3 +19,6 @@ appsettings.Development.json
 .env
 .env.*
 !.env.example
+
+# Local notes
+INTERVIEW_PREP.md
