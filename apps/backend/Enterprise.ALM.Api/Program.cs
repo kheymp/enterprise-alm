@@ -57,8 +57,19 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "In production, set the ConnectionStrings__DefaultConnection environment variable.");
 }
 
-builder.Services.AddDbContext<ApplicationDbContext>(options => 
-    options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+
+    // Dev-only: print real parameter values in the SQL log instead of '?'.
+    // Never enable outside Development — parameters can contain personal data.
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+    }
+});
+
+
 
 // Repository Implementations (Infrastructure layer)
 builder.Services.AddHttpContextAccessor();
@@ -77,7 +88,10 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 // Background Jobs
 builder.Services.AddHostedService<LicenseExpirationJob>();
-builder.Services.AddHostedService<DemoResetJob>();
+if (builder.Configuration.GetValue("DemoMode:Enabled", true))
+{
+    builder.Services.AddHostedService<DemoResetJob>();
+}
 
 // Returns RFC 7807 ProblemDetails JSON for unhandled exceptions, so error
 // responses carry CORS headers instead of surfacing as "Failed to fetch".
