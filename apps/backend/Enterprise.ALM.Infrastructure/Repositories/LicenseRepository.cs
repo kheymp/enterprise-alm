@@ -62,4 +62,12 @@ public class LicenseRepository : ILicenseRepository
     {
         _context.LicenseAllocations.Remove(allocation);
     }
+
+    public async Task<SoftwareLicense?> GetByIdWithAllocationsAsync(int id)
+    {
+        return await _context.SoftwareLicenses
+            .AsNoTracking()
+            .Include(sl => sl.Allocations)
+            .FirstOrDefaultAsync(sl => sl.Id == id);
+    }
 }

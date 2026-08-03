@@ -13,4 +13,5 @@ public interface ILicenseRepository
     Task AddAllocationAsync(LicenseAllocation allocation);
     Task<LicenseAllocation?> GetAllocationAsync(int licenseId, int userId);
     void RemoveAllocation(LicenseAllocation allocation);
+    Task<SoftwareLicense?> GetByIdWithAllocationsAsync(int id);
 }

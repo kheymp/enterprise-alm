@@ -25,6 +25,16 @@ public class LicensesController : ControllerBase
         return Ok(licenses);
     }
 
+        [HttpGet("{id}")]
+    [Authorize(Roles = "Admin,Manager,Viewer")]
+    public async Task<IActionResult> GetLicenseById(int id)
+    {
+        var license = await _licenseService.GetLicenseByIdAsync(id);
+        if (license == null) return NotFound();
+        return Ok(license);
+    }
+
+
     [HttpPost]
     [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateLicense([FromBody] CreateLicenseDto dto)
@@ -68,5 +78,6 @@ public class LicensesController : ControllerBase
         if (!deleted) return NotFound();
         return Ok();
     }
+
     
 }
