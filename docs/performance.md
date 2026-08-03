@@ -126,13 +126,70 @@ API and database are on separate hosts and every round trip pays real network
 latency rather than a ~2ms loopback — but that is an expectation, not a
 measurement.
 
-### Why not `Task.WhenAll`
+### Why not `Task.WhenAll` (fix 1)
 
 Running the original eight queries concurrently would not work: `DbContext` is not
 thread-safe, and concurrent operations on one instance throw. Doing it properly
 would require `IDbContextFactory` and eight separate contexts, consuming eight
 pooled connections per dashboard load on the endpoint every user hits first.
 Issuing fewer queries is strictly better than making a bad pattern concurrent.
+
+## Fix 2 — license list projection
+
+`GetAllWithAllocationsAsync` used `.Include(sl => sl.Allocations)`, which EF Core
+compiles to a `LEFT JOIN` returning one row per allocation. 200 licenses arrived as
+~6,900 wide rows, were rebuilt into tracked entities, mapped to ~7,100 DTOs, and
+serialized to 447.8 KB — so the list view could show a seat count per license.
+
+The query now projects directly to a `LicenseListItemDto`, with the count computed
+by Postgres:
+
+```csharp
+.Select(sl => new LicenseListItemDto
+{
+    // ...
+    AllocatedSeats = sl.Allocations.Count
+})
+```
+
+Inside a `.Select()`, EF does not load the allocations to count them — the count is
+pushed into the query and the rows never leave the database.
+
+The seat-management dialog does need the allocation rows, so it reads them from
+`GET /api/licenses/{id}` instead. That endpoint was added separately and ahead of
+this change, so this PR was a projection plus a frontend rewire rather than new
+backend surface plus a frontend rewire.
+
+| Metric | Before | After | Change |
+| --- | --- | --- | --- |
+| Response payload | 447.8 KB | 30.4 KB | −93% |
+| Avg latency | 25.8ms | 5.8ms | −78% |
+| p95 latency | 34.1ms | 6.8ms | −80% |
+| SQL queries | 1 | 1 | unchanged |
+
+The query count was never the problem here — the volume was. This is the opposite
+shape of fix 1, which is why measuring first mattered: the endpoint with one query
+was slower than the one with eight.
+
+### Seat allocation changes
+
+The dialog previously refreshed itself after every assign and remove by refetching
+the entire list. It now refetches the single license:
+
+| | Before | After |
+| --- | --- | --- |
+| Payload per seat change | 447.8 KB | 0.2 KB |
+
+That path was paid on every allocation change, not just on page load.
+
+### Client-side cost
+
+`docs/performance.md` measures server time with a client that only downloads bytes.
+The parsers that were rejected for measurement are a reasonable proxy for what a
+real client pays to consume a response: PowerShell spent 115–660ms turning the
+447.8 KB payload into objects. A browser is considerably faster, but the direction
+holds — an oversized response costs the receiver too, and that cost does not appear
+in server-side timings.
 
 ## Reproducing
 
