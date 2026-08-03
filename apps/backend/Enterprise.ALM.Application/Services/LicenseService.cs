@@ -140,4 +140,29 @@ public class LicenseService : ILicenseService
         await _licenseRepository.SaveChangesAsync();
         return true;
     }
+
+    public async Task<LicenseResponseDto?> GetLicenseByIdAsync(int id)
+{
+    var license = await _licenseRepository.GetByIdWithAllocationsAsync(id);
+    if (license == null) return null;
+
+    return new LicenseResponseDto
+    {
+        Id = license.Id,
+        Name = license.Name,
+        Publisher = license.Publisher,
+        TotalSeats = license.TotalSeats,
+        CostPerSeat = license.CostPerSeat,
+        RenewalDate = license.RenewalDate,
+        IsActive = license.IsActive,
+        AllocatedSeats = license.Allocations?.Count ?? 0,
+        Allocations = license.Allocations?.Select(a => new LicenseAllocationDto
+        {
+            Id = a.Id,
+            UserId = a.UserId,
+            AssignedDate = a.AssignedDate
+        }).ToList() ?? new List<LicenseAllocationDto>()
+    };
+}
+
 }

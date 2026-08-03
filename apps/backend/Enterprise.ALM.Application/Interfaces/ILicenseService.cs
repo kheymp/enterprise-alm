@@ -10,4 +10,6 @@ public interface ILicenseService
     Task<bool> DeleteLicenseAsync(int id);
     Task<(bool Success, string? Error)> AllocateLicenseAsync(int licenseId, AllocateLicenseDto dto);
     Task<bool> RemoveAllocationAsync(int licenseId, int userId);
+    Task<LicenseResponseDto?> GetLicenseByIdAsync(int id);
+
 }
