@@ -40,6 +40,7 @@ Click **"Admin — full access"** on the login page (`demo@enterprise-alm.app`) 
 - **CI as a required gate** — GitHub Actions builds, lints, and tests both apps on every PR; `main` is branch-protected, so nothing merges red. Merges auto-deploy to Render + Vercel.
 - **Self-healing public demo** — an hourly `BackgroundService` wipes visitor changes and re-seeds baseline data, so the live demo can safely offer full admin access.
 - **Unit-tested business logic** — xUnit + Moq suites over the auth, asset (depreciation), and license (seat-allocation) services, running in CI.
+- **Measured, not guessed** — endpoints profiled against a seeded 100k-row dataset: the dashboard went from 8 SQL round trips to 4, and the licenses list from a 448 KB payload to 30 KB. Method and before/after numbers in [docs/performance.md](docs/performance.md).
 - **Security fundamentals** — JWT bearer auth with BCrypt-hashed passwords, per-endpoint role enforcement, secrets via user-secrets/env vars (never committed), startup fail-fast on missing config.
 
 ## 🚀 Tech Stack
@@ -96,6 +97,20 @@ Three seeded roles enforced per-endpoint with `[Authorize(Roles = ...)]`:
 | `Enterprise.ALM.Tests` | xUnit + Moq unit tests over Application services. |
 
 Entities never cross the HTTP boundary (DTOs only). Migrations apply automatically at startup. Unhandled exceptions return RFC 7807 `ProblemDetails`. The repo is a pnpm workspace orchestrated by Turborepo: .NET solution in `apps/backend`, React app in `apps/frontend`.
+
+## ⚡ Performance
+
+Endpoints were profiled against a seeded 100k-row dataset using EF Core command logging and Postgres `EXPLAIN ANALYZE`. Full method, baselines, and reproduction steps: **[docs/performance.md](docs/performance.md)**.
+
+| Endpoint | Before | After |
+| --- | --- | --- |
+| `GET /dashboard/summary` | 8 sequential queries · 24.1ms p95 | 4 aggregate queries · 13.7ms p95 |
+| `GET /licenses` | 447.8 KB · 34.1ms p95 | 30.4 KB · 6.8ms p95 |
+
+- **Dashboard — too many round trips.** Eight `await`ed repository calls each returned a single figure for a 1.1 KB response, so latency was almost entirely round trips. Six collapsed into two `GroupBy(x => 1)` aggregates. p95 fell further than the mean: fewer round trips means fewer chances to catch a slow one, which compresses the tail.
+- **Licenses — too much volume.** `.Include(sl => sl.Allocations)` compiled to a `LEFT JOIN` returning one row per allocation, so 200 licenses arrived as ~6,900 rows and serialized to 448 KB — to render a seat count. Replaced with a server-side projection; the seat-management dialog reads allocation rows from `GET /licenses/{id}` instead.
+
+The two findings have opposite shapes — one endpoint was slow with 8 queries, the other with 1 — which is why the baseline was measured and committed before anything was changed. `infra/perf/` holds the seed script, so the numbers are reproducible rather than asserted.
 
 ## 📦 Running Locally
 
@@ -172,7 +187,7 @@ All endpoints are prefixed with `/api` and require authentication unless noted. 
 | **Assets** | `GET /assets`, `GET /assets/{id}` | Admin, Manager, Viewer |
 | | `POST /assets`, `PUT /assets/{id}`, `POST /assets/{id}/maintenance` | Admin, Manager |
 | | `DELETE /assets/{id}` | Admin |
-| **Licenses** | `GET /licenses` | Admin, Manager, Viewer |
+| **Licenses** | `GET /licenses`, `GET /licenses/{id}` | Admin, Manager, Viewer |
 | | `POST /licenses`, `PUT /licenses/{id}`, `DELETE /licenses/{id}` | Admin, Manager |
 | | `POST /licenses/{id}/allocate`, `DELETE /licenses/{id}/allocate/{userId}` | Admin, Manager |
 | **Dashboard** | `GET /dashboard/summary` | Admin, Manager, Viewer |
