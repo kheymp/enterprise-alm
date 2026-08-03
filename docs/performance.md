@@ -86,6 +86,54 @@ Not yet measured: the filtered variant (`?entityName=&entityId=`), where the
 `(EntityName, EntityId)` index serves the filter but not the `ORDER BY Timestamp`.
 Worth an `EXPLAIN ANALYZE` before assuming an index is needed.
 
+## Fix 1 — dashboard aggregate queries
+
+`DashboardService.GetSummaryAsync` awaited eight repository calls in sequence, each
+returning a single figure. Six of those eight read only two tables, so they were
+collapsed into two aggregate queries using `GroupBy(x => 1)` — the LINQ idiom for
+"aggregate the whole table", which EF Core compiles to one `SELECT` per table:
+
+```sql
+SELECT count(*)::int AS "TotalAssets",
+       COALESCE(sum(t."PurchasePrice"), 0.0) AS "TotalAssetValue",
+       count(*) FILTER (WHERE t."AssignedUserId" IS NOT NULL)::int AS "AssignedAssets"
+FROM (SELECT a."AssignedUserId", a."PurchasePrice", 1 AS "Key"
+      FROM "Assets" AS a WHERE a."IsActive") AS t
+GROUP BY t."Key"
+LIMIT 1
+```
+
+Seats-used reads a different table and expiring-licenses returns rows rather than
+aggregates, so both remain separate queries. Four is the floor without contortions.
+`AsNoTracking()` was added to the expiring-licenses read, which is read-only.
+
+| Metric | Before | After | Change |
+| --- | --- | --- | --- |
+| SQL queries | 8 | 4 | −50% |
+| Database time | 18ms | 12ms | −33% |
+| Avg latency | 16.2ms | 12.1ms | −25% |
+| p95 latency | 24.1ms | 13.7ms | −43% |
+
+Response payload unchanged at 1.1 KB — the API contract is identical, only the
+number of round trips changed.
+
+p95 improved considerably more than the average. Each round trip is an
+opportunity to catch a slow one, so halving their number compresses the tail
+faster than it moves the mean. Tail latency is what users perceive.
+
+Not measured: production. The gain should be larger on Render + Neon, where the
+API and database are on separate hosts and every round trip pays real network
+latency rather than a ~2ms loopback — but that is an expectation, not a
+measurement.
+
+### Why not `Task.WhenAll`
+
+Running the original eight queries concurrently would not work: `DbContext` is not
+thread-safe, and concurrent operations on one instance throw. Doing it properly
+would require `IDbContextFactory` and eight separate contexts, consuming eight
+pooled connections per dashboard load on the endpoint every user hits first.
+Issuing fewer queries is strictly better than making a bad pattern concurrent.
+
 ## Reproducing
 
 `appsettings.Development.json` is gitignored (it holds the JWT secret and the
