@@ -1,6 +1,7 @@
 using Enterprise.ALM.Application.Interfaces;
 using Enterprise.ALM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Enterprise.ALM.Application.DTOs.Dashboard;
 
 namespace Enterprise.ALM.Infrastructure.Repositories;
 
@@ -13,54 +14,47 @@ public class DashboardRepository : IDashboardRepository
         _context = context;
     }
 
-    public async Task<int> GetActiveAssetCountAsync()
-    {
-        return await _context.Assets.CountAsync(a => a.IsActive);
-    }
+    public async Task<AssetStatsDto> GetAssetStatsAsync()
+{
+    return await _context.Assets
+        .Where(a => a.IsActive)
+        .GroupBy(a => 1)
+        .Select(g => new AssetStatsDto
+        {
+            TotalAssets = g.Count(),
+            TotalAssetValue = g.Sum(a => a.PurchasePrice),
+            AssignedAssets = g.Count(a => a.AssignedUserId != null)
+        })
+        .FirstOrDefaultAsync() ?? new AssetStatsDto();
+}
 
-    public async Task<decimal> GetTotalAssetValueAsync()
-    {
-        return await _context.Assets
-            .Where(a => a.IsActive)
-            .SumAsync(a => (decimal?)a.PurchasePrice ?? 0);
-    }
+public async Task<LicenseStatsDto> GetLicenseStatsAsync()
+{
+    return await _context.SoftwareLicenses
+        .Where(sl => sl.IsActive)
+        .GroupBy(sl => 1)
+        .Select(g => new LicenseStatsDto
+        {
+            TotalLicenses = g.Count(),
+            TotalLicenseCost = g.Sum(sl => (decimal?)(sl.CostPerSeat * sl.TotalSeats)),
+            TotalSeatsOwned = g.Sum(sl => sl.TotalSeats)
+        })
+        .FirstOrDefaultAsync() ?? new LicenseStatsDto();
+}
 
-    public async Task<int> GetAssignedAssetCountAsync()
-    {
-        return await _context.Assets
-            .CountAsync(a => a.IsActive && a.AssignedUserId != null);
-    }
+public async Task<int> GetTotalSeatsUsedAsync()
+{
+    return await _context.LicenseAllocations
+        .Where(la => la.SoftwareLicense!.IsActive)
+        .CountAsync();
+}
 
-    public async Task<int> GetActiveLicenseCountAsync()
-    {
-        return await _context.SoftwareLicenses.CountAsync(sl => sl.IsActive);
-    }
+public async Task<List<SoftwareLicense>> GetExpiringLicensesAsync(DateTime cutoffDate)
+{
+    return await _context.SoftwareLicenses
+        .AsNoTracking()
+        .Where(sl => sl.IsActive && sl.RenewalDate <= cutoffDate)
+        .ToListAsync();
+}
 
-    public async Task<decimal?> GetTotalLicenseCostAsync()
-    {
-        return await _context.SoftwareLicenses
-            .Where(sl => sl.IsActive)
-            .SumAsync(sl => (decimal?)(sl.CostPerSeat * sl.TotalSeats));
-    }
-
-    public async Task<int> GetTotalSeatsOwnedAsync()
-    {
-        return await _context.SoftwareLicenses
-            .Where(sl => sl.IsActive)
-            .SumAsync(sl => (int?)sl.TotalSeats) ?? 0;
-    }
-
-    public async Task<int> GetTotalSeatsUsedAsync()
-    {
-        return await _context.LicenseAllocations
-            .Where(la => la.SoftwareLicense!.IsActive)
-            .CountAsync();
-    }
-
-    public async Task<List<SoftwareLicense>> GetExpiringLicensesAsync(DateTime cutoffDate)
-    {
-        return await _context.SoftwareLicenses
-            .Where(sl => sl.IsActive && sl.RenewalDate <= cutoffDate)
-            .ToListAsync();
-    }
 }
