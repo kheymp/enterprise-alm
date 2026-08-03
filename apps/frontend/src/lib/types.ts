@@ -61,8 +61,9 @@ export interface LicenseAllocation {
   assignedDate: string;
 }
 
-// LicenseResponseDto
-export interface LicenseResponse {
+// LicenseListItemDto — GET /api/licenses
+// The list view's shape: no allocation rows, just the seat count.
+export interface LicenseListItem {
   id: number;
   name: string;
   publisher: string;
@@ -71,6 +72,12 @@ export interface LicenseResponse {
   renewalDate: string;
   isActive: boolean;
   allocatedSeats: number;
+}
+
+// LicenseResponseDto — GET /api/licenses/{id}
+// Detail is the list item plus its allocations, so anything typed LicenseListItem
+// also accepts a LicenseResponse.
+export interface LicenseResponse extends LicenseListItem {
   allocations: LicenseAllocation[];
 }
 

@@ -1,3 +1,4 @@
+using Enterprise.ALM.Application.DTOs.License;
 using Enterprise.ALM.Application.Interfaces;
 using Enterprise.ALM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +13,25 @@ public class LicenseRepository : ILicenseRepository
         _context = context;
     }
 
-    public async Task<List<SoftwareLicense>> GetAllWithAllocationsAsync(bool showInactive)
+    // Projects straight to the list DTO so the allocation rows never leave Postgres.
+    // AllocatedSeats becomes a correlated COUNT subquery rather than a LEFT JOIN
+    // returning one row per allocation.
+    public async Task<List<LicenseListItemDto>> GetAllForListAsync(bool showInactive)
     {
         return await _context.SoftwareLicenses
+            .AsNoTracking()
             .Where(sl => sl.IsActive || showInactive)
-            .Include(sl => sl.Allocations)
+            .Select(sl => new LicenseListItemDto
+            {
+                Id = sl.Id,
+                Name = sl.Name,
+                Publisher = sl.Publisher,
+                TotalSeats = sl.TotalSeats,
+                CostPerSeat = sl.CostPerSeat,
+                RenewalDate = sl.RenewalDate,
+                IsActive = sl.IsActive,
+                AllocatedSeats = sl.Allocations.Count
+            })
             .ToListAsync();
     }
 

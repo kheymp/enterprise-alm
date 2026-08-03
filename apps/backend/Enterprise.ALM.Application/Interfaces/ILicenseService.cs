@@ -4,7 +4,7 @@ namespace Enterprise.ALM.Application.Interfaces;
 
 public interface ILicenseService
 {
-    Task<List<LicenseResponseDto>> GetAllLicensesAsync(bool showInactive);
+    Task<List<LicenseListItemDto>> GetAllLicensesAsync(bool showInactive);
     Task<LicenseResponseDto> CreateLicenseAsync(CreateLicenseDto dto);
     Task<LicenseResponseDto?> UpdateLicenseAsync(int id, UpdateLicenseDto dto);
     Task<bool> DeleteLicenseAsync(int id);

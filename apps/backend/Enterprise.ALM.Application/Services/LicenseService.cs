@@ -13,26 +13,12 @@ public class LicenseService : ILicenseService
         _licenseRepository = licenseRepository;
     }
 
-    public async Task<List<LicenseResponseDto>> GetAllLicensesAsync(bool showInactive)
+    // The repository projects directly to the list DTO, so there is no mapping to do
+    // here — shaping the query is the whole point. Callers needing the allocation
+    // rows use GetLicenseByIdAsync.
+    public async Task<List<LicenseListItemDto>> GetAllLicensesAsync(bool showInactive)
     {
-        var licenses = await _licenseRepository.GetAllWithAllocationsAsync(showInactive);
-        return licenses.Select(sl => new LicenseResponseDto
-        {
-            Id = sl.Id,
-            Name = sl.Name,
-            Publisher = sl.Publisher,
-            TotalSeats = sl.TotalSeats,
-            CostPerSeat = sl.CostPerSeat,
-            RenewalDate = sl.RenewalDate,
-            IsActive = sl.IsActive,
-            AllocatedSeats = sl.Allocations?.Count ?? 0,
-            Allocations = sl.Allocations?.Select(a => new LicenseAllocationDto
-            {
-                Id = a.Id,
-                UserId = a.UserId,
-                AssignedDate = a.AssignedDate
-            }).ToList() ?? new List<LicenseAllocationDto>()
-        }).ToList();
+        return await _licenseRepository.GetAllForListAsync(showInactive);
     }
 
     public async Task<LicenseResponseDto> CreateLicenseAsync(CreateLicenseDto dto)
@@ -142,27 +128,26 @@ public class LicenseService : ILicenseService
     }
 
     public async Task<LicenseResponseDto?> GetLicenseByIdAsync(int id)
-{
-    var license = await _licenseRepository.GetByIdWithAllocationsAsync(id);
-    if (license == null) return null;
-
-    return new LicenseResponseDto
     {
-        Id = license.Id,
-        Name = license.Name,
-        Publisher = license.Publisher,
-        TotalSeats = license.TotalSeats,
-        CostPerSeat = license.CostPerSeat,
-        RenewalDate = license.RenewalDate,
-        IsActive = license.IsActive,
-        AllocatedSeats = license.Allocations?.Count ?? 0,
-        Allocations = license.Allocations?.Select(a => new LicenseAllocationDto
-        {
-            Id = a.Id,
-            UserId = a.UserId,
-            AssignedDate = a.AssignedDate
-        }).ToList() ?? new List<LicenseAllocationDto>()
-    };
-}
+        var license = await _licenseRepository.GetByIdWithAllocationsAsync(id);
+        if (license == null) return null;
 
+        return new LicenseResponseDto
+        {
+            Id = license.Id,
+            Name = license.Name,
+            Publisher = license.Publisher,
+            TotalSeats = license.TotalSeats,
+            CostPerSeat = license.CostPerSeat,
+            RenewalDate = license.RenewalDate,
+            IsActive = license.IsActive,
+            AllocatedSeats = license.Allocations?.Count ?? 0,
+            Allocations = license.Allocations?.Select(a => new LicenseAllocationDto
+            {
+                Id = a.Id,
+                UserId = a.UserId,
+                AssignedDate = a.AssignedDate
+            }).ToList() ?? new List<LicenseAllocationDto>()
+        };
+    }
 }
