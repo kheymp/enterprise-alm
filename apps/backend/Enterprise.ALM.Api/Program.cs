@@ -141,4 +141,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Anonymous and DB-free on purpose: polled by an uptime monitor to keep the
+// Render container warm without waking the auto-suspending Neon database.
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+   .AllowAnonymous();
+
 app.Run();
