@@ -26,6 +26,17 @@ public class AssetsController : ControllerBase
         return Ok(assets);
     }
 
+    // Route precedence, not declaration order, decides this vs. "{id}" below:
+    // a literal segment always outranks a parameter segment, so /api/assets/export
+    // can never be swallowed by GetAssetDetails.
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,Manager,Viewer")]
+    public async Task<IActionResult> ExportAssets()
+    {
+        var bytes = await _assetService.ExportAssetsToCsvAsync();
+        return File(bytes, "text/csv", "assets.csv");
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateAsset([FromBody] CreateAssetDto dto)
