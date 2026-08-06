@@ -39,7 +39,8 @@ Click **"Admin — full access"** on the login page (`demo@enterprise-alm.app`) 
 - **Automatic audit trail** — every entity change is captured via the EF Core `ChangeTracker`: old/new values, changed columns, acting user, UTC timestamp. No per-controller audit code.
 - **CI as a required gate** — GitHub Actions builds, lints, and tests both apps on every PR; `main` is branch-protected, so nothing merges red. Merges auto-deploy to Render + Vercel.
 - **Self-healing public demo** — an hourly `BackgroundService` wipes visitor changes and re-seeds baseline data, so the live demo can safely offer full admin access.
-- **Unit-tested business logic** — xUnit + Moq suites over the auth, asset (depreciation), and license (seat-allocation) services, running in CI.
+- **Unit-tested business logic** — xUnit + Moq suites over the auth, asset (depreciation), license (seat-allocation), and CSV export (RFC 4180 escaping) services, running in CI.
+- **Data interchange done properly** — CSV export is RFC 4180 compliant: fields are quoted only when they contain a delimiter, quote, CR or LF, and inner quotes are doubled. A UTF-8 BOM keeps Excel from misreading non-ASCII names, and every date and decimal is formatted with `InvariantCulture` — a comma-decimal host locale would otherwise turn `1234.56` into `1234,56` and split the row at the delimiter.
 - **Measured, not guessed** — endpoints profiled against a seeded 100k-row dataset: the dashboard went from 8 SQL round trips to 4, and the licenses list from a 448 KB payload to 30 KB. Method and before/after numbers in [docs/performance.md](docs/performance.md).
 - **Security fundamentals** — JWT bearer auth with BCrypt-hashed passwords, per-endpoint role enforcement, secrets via user-secrets/env vars (never committed), startup fail-fast on missing config.
 
@@ -57,6 +58,7 @@ Click **"Admin — full access"** on the login page (`demo@enterprise-alm.app`) 
 - Full CRUD over physical assets with serial-number tracking and employee assignment.
 - **Maintenance history** — dated service records with cost against any asset.
 - **Straight-line depreciation** — current book value computed from purchase price, expected lifespan, and salvage value.
+- **CSV export** — one click downloads the asset register as a spreadsheet-ready `.csv`. Built in the Application layer behind a reusable `CsvWriter`, so escaping is tested independently of the asset mapping.
 
 ### 🔑 SaaS License Management
 - Licenses with seat counts and renewal dates; per-user **seat allocation with capacity enforcement**.
@@ -79,6 +81,7 @@ Three seeded roles enforced per-endpoint with `[Authorize(Roles = ...)]`:
 ### 🖥️ Frontend
 - Centralized typed API client (`src/lib/api.ts`) — base URL from environment, unified `ProblemDetails`/validation error parsing.
 - Role-aware navigation and route guards driven by the decoded JWT.
+- Authenticated file downloads via `Blob` + object URL — the JWT is attached as an `Authorization` header by the API client, so a plain link navigation would send no header and 401.
 
 ## 🏛️ Architecture
 
@@ -184,7 +187,7 @@ All endpoints are prefixed with `/api` and require authentication unless noted. 
 | Controller | Endpoints | Required Role |
 | --- | --- | --- |
 | **Auth** | `POST /auth/register`, `POST /auth/login` | Anonymous |
-| **Assets** | `GET /assets`, `GET /assets/{id}` | Admin, Manager, Viewer |
+| **Assets** | `GET /assets`, `GET /assets/{id}`, `GET /assets/export` (CSV) | Admin, Manager, Viewer |
 | | `POST /assets`, `PUT /assets/{id}`, `POST /assets/{id}/maintenance` | Admin, Manager |
 | | `DELETE /assets/{id}` | Admin |
 | **Licenses** | `GET /licenses`, `GET /licenses/{id}` | Admin, Manager, Viewer |
@@ -201,6 +204,7 @@ All endpoints are prefixed with `/api` and require authentication unless noted. 
 - [ ] **FluentValidation** on request DTOs
 - [x] **Frontend type hardening** — `any` cleared from the React app; `@typescript-eslint/no-explicit-any` now fails the build
 - [ ] **Extract data hooks** from the larger page components (Assets, Licenses, UserManagement)
+- [ ] **Filter-aware CSV export** — `GET /assets/export` returns every asset; Assets-page search is client-side, so exporting the filtered view means moving filtering server-side first
 
 ## 👨‍💻 About The Author
 
