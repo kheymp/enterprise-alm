@@ -22,11 +22,22 @@ import InfoIcon from '@mui/icons-material/Info';
 import DevicesIcon from '@mui/icons-material/Devices';
 import BuildIcon from '@mui/icons-material/Build';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { jwtDecode } from 'jwt-decode';
 import { api, getErrorMessage } from '../lib/api';
 import type { AssetResponse, AssetDetailResponse, UserResponse, JwtPayload } from '../lib/types';
 
 const PAGE_SIZE = 8;
+
+/**
+ * UTF-8 byte order mark. The server writes one, but fetch's res.text() runs
+ * "UTF-8 decode", which strips a leading BOM — so by the time api.ts hands us
+ * the string it's gone. We re-add it before building the Blob, otherwise Excel
+ * guesses the local codepage and mangles non-ASCII asset names.
+ * Built from the code point rather than an escape so it isn't an invisible
+ * character sitting in this file.
+ */
+const UTF8_BOM = String.fromCharCode(0xFEFF);
 
 /**
  * The detail endpoint returns a server-computed current value; the list
@@ -729,6 +740,7 @@ export default function Assets() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [assetToDelete, setAssetToDelete] = useState<AssetResponse | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [assetDetails, setAssetDetails] = useState<AssetDetailResponse | null>(null);
 
@@ -841,6 +853,41 @@ export default function Assets() {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            setExporting(true);
+
+            // api.ts returns non-JSON bodies as a plain string, so this is the CSV
+            // text with the JWT already attached as an Authorization header. A
+            // plain <a href> would navigate without that header and get a 401.
+            const csv = await api.get<string>('/api/assets/export');
+            const withBom = csv.startsWith(UTF8_BOM) ? csv : `${UTF8_BOM}${csv}`;
+
+            const blob = new Blob([withBom], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `assets-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Release the Blob. Without this it stays in memory until a full reload.
+            URL.revokeObjectURL(url);
+
+            setSnackbar({
+                open: true,
+                message: `Exported ${assets.length} asset${assets.length !== 1 ? 's' : ''}.`,
+                severity: 'success'
+            });
+        } catch (err) {
+            setSnackbar({ open: true, message: getErrorMessage(err), severity: 'error' });
+        } finally {
+            setExporting(false);
+        }
+    };
+
     const handleMaintenanceAdded = () => {
         setSnackbar({ open: true, message: 'Maintenance record added.', severity: 'success' });
         if (assetDetails) {
@@ -860,19 +907,32 @@ export default function Assets() {
                         Track hardware assets, assignments, depreciation values, and maintenance history.
                     </Typography>
                 </Box>
-                <Tooltip title={!canModify ? 'Requires Admin or Manager role' : ''}>
-                    <span>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleOpenCreate}
-                            disabled={!canModify}
-                            sx={{ whiteSpace: 'nowrap', alignSelf: isMobile ? 'stretch' : 'flex-start' }}
-                        >
-                            Add Asset
-                        </Button>
-                    </span>
-                </Tooltip>
+                <Box sx={{ display: 'flex', gap: 1, alignSelf: isMobile ? 'stretch' : 'flex-start' }}>
+                    {/* Export is a read, so it follows the list endpoint's roles
+                        (Admin/Manager/Viewer) rather than canModify. */}
+                    <Button
+                        variant="outlined"
+                        startIcon={exporting ? <CircularProgress size={16} color="inherit" /> : <FileDownloadIcon />}
+                        onClick={handleExport}
+                        disabled={exporting || loading || assets.length === 0}
+                        sx={{ whiteSpace: 'nowrap', flex: isMobile ? 1 : undefined }}
+                    >
+                        Export CSV
+                    </Button>
+                    <Tooltip title={!canModify ? 'Requires Admin or Manager role' : ''}>
+                        <span>
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={handleOpenCreate}
+                                disabled={!canModify}
+                                sx={{ whiteSpace: 'nowrap' }}
+                            >
+                                Add Asset
+                            </Button>
+                        </span>
+                    </Tooltip>
+                </Box>
             </Box>
 
             {error && (

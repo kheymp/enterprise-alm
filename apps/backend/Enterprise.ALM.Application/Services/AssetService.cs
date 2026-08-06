@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Enterprise.ALM.Application.DTOs.Asset;
 using Enterprise.ALM.Application.Interfaces;
 using Enterprise.ALM.Domain.Entities;
@@ -30,6 +32,43 @@ public class AssetService : IAssetService
             AssignedUserId = a.AssignedUserId,
             AssignedUserName = a.AssignedUser?.Username
         }).ToList();
+    }
+
+    public async Task<byte[]> ExportAssetsToCsvAsync()
+    {
+        // Reuse the list projection so the export can never drift out of sync
+        // with what GET /api/assets returns — one source of truth for columns.
+        var assets = await GetAllAssetsAsync();
+
+        var sb = new StringBuilder();
+
+        // UTF-8 BOM, so Excel reads the file as UTF-8 instead of guessing the
+        // local ANSI codepage. Encoding.UTF8.GetBytes does NOT emit a preamble
+        // on its own, so the BOM has to be a real character in the string.
+        sb.Append((char)0xFEFF);
+
+        CsvWriter.AppendRow(sb,
+            "Id", "Name", "Serial Number", "Purchase Date", "Purchase Price",
+            "Salvage Value", "Expected Lifespan (Months)", "Status", "Assigned To");
+
+        // Every conversion is InvariantCulture: the host locale on Render is not
+        // ours to control, and a culture using ',' as the decimal separator would
+        // split a price across two columns and corrupt every field after it.
+        foreach (var a in assets)
+        {
+            CsvWriter.AppendRow(sb,
+                a.Id.ToString(CultureInfo.InvariantCulture),
+                a.Name,
+                a.SerialNumber,
+                a.PurchaseDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                a.PurchasePrice.ToString("0.00", CultureInfo.InvariantCulture),
+                a.SalvageValue.ToString("0.00", CultureInfo.InvariantCulture),
+                a.ExpectedLifespanMonths.ToString(CultureInfo.InvariantCulture),
+                a.IsActive ? "Active" : "Inactive",
+                a.AssignedUserName);
+        }
+
+        return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
     public async Task<AssetDetailResponseDto?> GetAssetDetailsAsync(int id)
